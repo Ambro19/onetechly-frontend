@@ -1,0 +1,32 @@
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global primitives */
+html, body, #root {
+  /* Don’t hard-lock height; allow page to size naturally. */
+  min-height: 100%;
+  height: auto;
+}
+
+body {
+  /* light, app-wide base */
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* Keep the logo from blowing up if Tailwind fails for any reason */
+svg[data-app-logo] { width: 64px; height: 64px; }
+
+/* A tiny helper to center auth cards on any screen */
+.auth-page {
+  @apply min-h-screen flex items-center justify-center px-4;
+  /* very subtle top-to-bottom tint to match your screenshots */
+  background-image: linear-gradient(to bottom, #eef2ff 0%, #f8fafc 40%, #f8fafc 100%);
+}
+
+
+
+
+
+

@@ -1,0 +1,73 @@
+{
+  "id": "/",
+  "name": "YouTube Content Downloader",
+  "short_name": "YT Downloader",
+  "description": "Download YouTube transcripts (TXT/VTT/SRT), extract audio (MP3), and save videos with full mobile support.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#F9FAFB",
+  "theme_color": "#2563EB",
+  "categories": ["utilities", "productivity", "video"],
+  "icons": [
+    {
+      "src": "favicon_io/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon_io/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon_io/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon_io/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "favicon_io/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start a Download",
+      "short_name": "Download",
+      "description": "Open the downloader quickly.",
+      "url": "/download",
+      "icons": [
+        {
+          "src": "favicon_io/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View History",
+      "short_name": "History",
+      "description": "See recent downloads.",
+      "url": "/history",
+      "icons": [
+        {
+          "src": "favicon_io/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}
+

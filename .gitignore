@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+# build output
+build/
+dist/
+# local env files
+.env*
+!.env.example
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+# editor
+.vscode/
+.DS_Store
+EOF
+
+# make sure env example exists (safe to commit)
+cp -n .env .env.local 2>/dev/null || true
+cp -n .env.example .env.example 2>/dev/null || true

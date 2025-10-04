@@ -1,0 +1,18 @@
+YOUTUBE-TRANSCRIPT-APP/
+├── .git/                    # Git repository (here, not in backend/)
+├── .gitignore
+├── README.md
+├── backend/
+│   ├── main.py
+│   ├── models.py
+│   ├── transcript_utils.py
+│   ├── db_migration.py
+│   ├── requirements.txt
+│   ├── .env
+│   └── youtube_transcript_downloader.db
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── ...
+└── docs/
