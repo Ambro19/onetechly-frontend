@@ -1,6 +1,12 @@
+```txt
 User-agent: *
-Disallow: /api/
-Disallow: /admin/
+# Allow the marketing site and auth entry points:
 Allow: /
 
+# Optional: keep internal file cache paths out of the index if ever exposed
+Disallow: /files/
+Disallow: /user/
+Disallow: /debug/
+
+# Your XML sitemap
 Sitemap: https://onetechly.com/sitemap.xml
