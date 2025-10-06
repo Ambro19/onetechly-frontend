@@ -73,18 +73,17 @@
     "tailwindcss": "^3.4",
     "webpack-bundle-analyzer": "^4.7.0"
   },
-
-  
   "jest": {
     "collectCoverageFrom": [
-    "src/**/*.{js,jsx}",
-    "!src/pages/Marketing/**",
-    "!src/components/MarketingHeader.js",
-    "!src/pages/Marketing/Legal/**"
+      "src/**/*.{js,jsx}",
+      "!src/pages/Marketing/**",
+      "!src/components/MarketingHeader.js",
+      "!src/pages/Marketing/Legal/**"
     ]
   },
-
   "homepage": ".",
-  "proxy": "http://localhost:8000"
-
+  "proxy": "http://localhost:8000",
+  "engines": {
+    "node": ">=20"
+  }
 }
