@@ -27,7 +27,7 @@ export default function Home() {
                 Explore YouTube Content Downloader
               </Link>
               <a
-                href="https://blog.onetechly.com"
+                href="https://onetechlyambr19.blogspot.com/" /*"https://blog.onetechly.com"*/
                 className="inline-flex items-center justify-center h-11 rounded-xl px-6 font-semibold
                            border hover:bg-gray-50"
               >
