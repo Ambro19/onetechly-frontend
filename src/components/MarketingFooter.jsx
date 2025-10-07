@@ -8,7 +8,7 @@ export default function MarketingFooter() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
-              <img src="/logo192.png" alt="OneTechly" className="h-8 w-8" />
+              <img src="/public/logo_onetechly.png" alt="OneTechly" className="h-8 w-8" /> 
               <div className="font-semibold">OneTechly</div>
             </div>
             <p className="mt-3 text-sm text-gray-600">
@@ -27,7 +27,7 @@ export default function MarketingFooter() {
             <ul className="mt-3 space-y-2 text-sm">
               <li><Link to="/ycd" className="hover:text-indigo-700">YouTube Content Downloader</Link></li>
               <li><Link to="/pricing" className="hover:text-indigo-700">Pricing</Link></li>
-              <li><a href="https://blog.onetechly.com" className="hover:text-indigo-700">Blog</a></li>
+              <li><a href="https://onetechlyambr19.blogspot.com/" className="hover:text-indigo-700">Blog</a></li>
             </ul>
           </div>
 

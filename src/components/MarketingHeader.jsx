@@ -23,7 +23,7 @@ export default function MarketingHeader() {
         {/* Brand */}
         <Link to="/" className="flex items-center gap-3">
           <img
-            src="/public/logo_onetechly.png" /*"/logo192.png"*/
+            src="public/logo_onetechly.png" /*"/logo192.png"*/
             alt="OneTechly"
             className="h-8 w-8 rounded-lg shadow"
           />

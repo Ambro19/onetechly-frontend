@@ -12,7 +12,7 @@ export default function Home() {
       <section className="py-14 sm:py-20">
         <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <img src="/logo192.png" alt="" className="mx-auto h-16 w-16 mb-6 rounded-xl shadow" />
+            <img src="/public/logo_onetechly.png" alt="" className="mx-auto h-16 w-16 mb-6 rounded-xl shadow" />
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">OneTechly</h1>
             <p className="mt-4 text-gray-600 text-lg">
               Tech Tips and Troubleshooting — and SaaS you can rely on.
