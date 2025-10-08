@@ -2,8 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import MarketingHeader from "../../components/MarketingHeader";
 import MarketingFooter from "../../components/MarketingFooter";
-//import YcdLogo from "../../components/YcdLogo";
-import YcdLogo from '../components/YcdLogo.jsx';
+import YcdLogo from "../../components/YcdLogo"; // <-- fixed path
 
 export default function YCD() {
   return (
