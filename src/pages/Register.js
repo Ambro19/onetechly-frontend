@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/Logo';
+import YcdLogo from '../components/YcdLogo.jsx';
+//import YcdLogo from '../components/YcdLogo';  // <- use YCD logo
 
 export default function RegisterPage() {
   const { register: doRegister, login } = useAuth();

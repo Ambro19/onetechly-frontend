@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useAuth } from '../contexts/AuthContext';
-import Logo from '../components/Logo';
+import { useAuth } from '../contexts/AuthContext.js';
+import Logo from '../components/Logo.js';
+import YcdLogo from '../components/YcdLogo.jsx'; // <- use YCD logo
 
 export default function LoginPage() {
   const { login } = useAuth();
