@@ -33,6 +33,17 @@ svg[data-app-logo] { width: 64px; height: 64px; }
   min-height: 56px;
 }
 
+/* src/index.css or a global css */
+.btn-primary {
+  @apply inline-flex items-center justify-center h-11 px-5 rounded-lg font-semibold
+         bg-indigo-600 text-white hover:bg-indigo-700 transition;
+}
+.btn-secondary {
+  @apply inline-flex items-center justify-center h-11 px-5 rounded-lg font-semibold
+         border border-gray-300 text-gray-800 hover:bg-gray-50 transition;
+}
+
+
 
 
 

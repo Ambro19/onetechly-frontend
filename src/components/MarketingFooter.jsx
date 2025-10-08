@@ -49,9 +49,14 @@ export default function MarketingFooter() {
           </div>
         </div>
 
-        <div className="mt-8 text-xs text-gray-500">
+        {/* <div className="mt-8 text-xs text-gray-500">
           © {new Date().getFullYear()} OneTechly. All rights reserved.
-        </div>
+        </div> */}
+        
+        <p className="mt-6 text-center text-xs text-gray-500">
+        © 2025 OneTechly. All rights reserved.
+        </p>
+
       </div>
     </footer>
   );
