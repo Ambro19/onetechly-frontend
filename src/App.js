@@ -40,7 +40,7 @@ export default function App() {
       <Route path="/legal/terms" element={<Terms />} />
       <Route path="/legal/privacy" element={<Privacy />} />
       <Route path="/legal/dmca" element={<DMCA />} /> */}
-
+      <Route path="/" element={<Home />} />
       <Route path="/ycd" element={<YCD />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/contact" element={<Contact />} />
