@@ -8,7 +8,7 @@ export default function MarketingFooter() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
-              <img src="/public/logo_onetechly.png" alt="OneTechly" className="h-8 w-8" /> 
+              <img src="/logo_onetechly.png" alt="OneTechly" className="h-8 w-8" /> 
               <div className="font-semibold">OneTechly</div>
             </div>
             <p className="mt-3 text-sm text-gray-600">

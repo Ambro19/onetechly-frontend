@@ -1,5 +1,6 @@
 // src/App.js
 import React from "react";
+import NotFound from './pages/Marketing/NotFound';
 import { Routes, Route, Navigate } from "react-router-dom";
 
 /* --- Company / Marketing pages --- */
@@ -32,13 +33,23 @@ export default function App() {
   return (
     <Routes>
       {/* ---------- Company / Marketing site ---------- */}
-      <Route path="/" element={<Home />} />
+      {/* <Route path="/" element={<Home />} />
+      <Route path="/ycd" element={<YCD />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/legal/terms" element={<Terms />} />
+      <Route path="/legal/privacy" element={<Privacy />} />
+      <Route path="/legal/dmca" element={<DMCA />} /> */}
+
       <Route path="/ycd" element={<YCD />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/legal/terms" element={<Terms />} />
       <Route path="/legal/privacy" element={<Privacy />} />
       <Route path="/legal/dmca" element={<DMCA />} />
+
+      {/* Marketing/public 404 */}
+      <Route path="*" element={<NotFound />} />
 
       {/* ---------- Public auth routes (app) ---------- */}
       <Route path="/login" element={<LoginPage />} />

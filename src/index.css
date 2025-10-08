@@ -25,6 +25,14 @@ svg[data-app-logo] { width: 64px; height: 64px; }
   background-image: linear-gradient(to bottom, #eef2ff 0%, #f8fafc 40%, #f8fafc 100%);
 }
 
+/* Prevent header text overlap on small screens */
+.header-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  min-height: 56px;
+}
+
 
 
 
