@@ -1,14 +1,25 @@
 // src/components/YcdLogo.jsx
 import React from "react";
 
-export default function YcdLogo({ className = "h-12 w-12" }) {
+/**
+ * YcdLogo
+ * size: "sm" | "md" | "lg"
+ */
+export default function YcdLogo({ size = "md", className = "" }) {
+  const sizes = {
+    sm: "h-10 w-10",
+    md: "h-14 w-14",
+    lg: "h-16 w-16 sm:h-20 sm:w-20",
+  };
   return (
     <img
       src="/ycd_logo.png"
       alt="YouTube Content Downloader"
-      className={`rounded-full shadow-sm ${className}`}
+      className={`${sizes[size]} rounded-full shadow-sm ${className}`}
+      width={80}
+      height={80}
+      loading="eager"
       decoding="async"
-      loading="lazy"
     />
   );
 }
