@@ -1,53 +1,79 @@
 // src/components/Logo.jsx
 import React from "react";
-import { Link } from "react-router-dom";
 
-/**
- * Reusable brand logo.
- * - brand: "onetechly" | "ycd"
- * - size:  "sm" | "md" | "lg"
- * - withText: show brand name next to the mark
- * - to: optional Link target (omit for plain <div>)
- */
-export default function Logo({
-  brand = "onetechly",
-  size = "md",
-  withText = true,
-  to = "/",
-  className = "",
-}) {
-  const src =
-    brand === "ycd" ? "/ycd-logo.png" : "/logo_onetechly.png"; // put your assets in /public
-  const text =
-    brand === "ycd" ? "YouTube Content Downloader" : "OneTechly";
+export default function Logo({ showText = true, variant = "default" }) {
+  const size =
+    variant === "compact" ? "h-8 w-8" : variant === "hero" ? "h-14 w-14" : "h-6 w-6";
 
-  const dim =
-    size === "lg" ? "h-10 w-10" : size === "sm" ? "h-7 w-7" : "h-8 w-8";
-
-  const Img = (
-    <img
-      src={src}
-      alt={text}
-      className={`${dim} object-cover rounded-xl ring-1 ring-indigo-100 shadow-sm`}
-      loading="lazy"
-      width={40}
-      height={40}
-    />
-  );
-
-  const Content = (
-    <div className={`inline-flex items-center gap-2 ${className}`}>
-      {Img}
-      {withText && (
-        <span className="font-semibold tracking-tight">
-          {text}
+  return (
+    <div className="flex items-center gap-2">
+      <img
+        src="/logo_onetechly.png"
+        alt="OneTechly"
+        className={`${size} rounded-xl shadow-sm`}
+      />
+      {showText && (
+        <span className="text-base font-semibold tracking-tight text-gray-900">
+          OneTechly
         </span>
       )}
     </div>
   );
-
-  return to ? <Link to={to}>{Content}</Link> : Content;
 }
+
+
+////////////////////////////////////////////////////////////////
+
+// // src/components/Logo.jsx
+// import React from "react";
+// import { Link } from "react-router-dom";
+
+// /**
+//  * Reusable brand logo.
+//  * - brand: "onetechly" | "ycd"
+//  * - size:  "sm" | "md" | "lg"
+//  * - withText: show brand name next to the mark
+//  * - to: optional Link target (omit for plain <div>)
+//  */
+// export default function Logo({
+//   brand = "onetechly",
+//   size = "md",
+//   withText = true,
+//   to = "/",
+//   className = "",
+// }) {
+//   const src =
+//     brand === "ycd" ? "/ycd-logo.png" : "/logo_onetechly.png"; // put your assets in /public
+//   const text =
+//     brand === "ycd" ? "YouTube Content Downloader" : "OneTechly";
+
+//   const dim =
+//     size === "lg" ? "h-10 w-10" : size === "sm" ? "h-7 w-7" : "h-8 w-8";
+
+//   const Img = (
+//     <img
+//       src={src}
+//       alt={text}
+//       className={`${dim} object-cover rounded-xl ring-1 ring-indigo-100 shadow-sm`}
+//       loading="lazy"
+//       width={40}
+//       height={40}
+//     />
+//   );
+
+//   const Content = (
+//     <div className={`inline-flex items-center gap-2 ${className}`}>
+//       {Img}
+//       {withText && (
+//         <span className="font-semibold tracking-tight">
+//           {text}
+//         </span>
+//       )}
+//     </div>
+//   );
+
+//   return to ? <Link to={to}>{Content}</Link> : Content;
+// }
 
 //////////////// ----  A GOOD LOGO FILE. KEEP IT ----- /////////////////////////
 // // ============================================================================

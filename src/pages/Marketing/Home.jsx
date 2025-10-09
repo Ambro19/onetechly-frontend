@@ -18,21 +18,24 @@ export default function Home() {
               Tech Tips and Troubleshooting — and SaaS you can rely on.
             </p>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 to="/ycd"
-                className="inline-flex items-center justify-center h-11 rounded-xl px-6 font-semibold text-white
-                           bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="inline-flex h-11 items-center justify-center rounded-xl
+                          bg-gradient-to-r from-indigo-600 to-blue-600 px-6 font-semibold text-white
+                          hover:from-indigo-700 hover:to-blue-700"
               >
                 Explore YouTube Content Downloader
               </Link>
-              <a
-                href="https://onetechlyambr19.blogspot.com/" 
-                className="inline-flex items-center justify-center h-11 rounded-xl px-6 font-semibold
-                           border hover:bg-gray-50"
+
+              <Link
+                to="/blog"
+                className="inline-flex h-11 items-center justify-center rounded-xl
+                          bg-gradient-to-r from-indigo-600 to-blue-600 px-6 font-semibold text-white
+                          hover:from-indigo-700 hover:to-blue-700"
               >
                 Visit the Blog
-              </a>
+              </Link>
             </div>
           </div>
 
