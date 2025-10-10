@@ -6,6 +6,7 @@ import { getDisplayEmail, getDisplayName } from '../utils/userDisplay';
 import Logo from '../components/Logo';
 import toast from 'react-hot-toast';
 import DeleteAccountButton from '../components/DeleteAccountButton';
+import AppPageTitle from "../components/AppPageTitle";
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -99,7 +100,7 @@ export default function DashboardPage() {
     return d.toLocaleDateString(undefined, opts);
   };
 
-  return (
+  return (                     /*<AppPageTitle title="Dashboard" />* <== to place this inside the return?/ */
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
@@ -239,6 +240,36 @@ export default function DashboardPage() {
             )}
           </div>
         </section>
+        
+        {/* Header */}
+        <AppPageTitle
+          title="Dashboard"
+          subtitle={
+            <>
+              Logged in as: <span className="font-medium text-blue-700">{userName}</span>{" "}
+              (<span className="font-mono">{userEmail}</span>)
+            </>
+          }
+          right={
+            <div className="mt-3 flex flex-col sm:flex-row gap-2 items-center justify-center">
+              <button
+                onClick={logout}
+                className="text-indigo-600 hover:text-indigo-800 transition-colors text-sm"
+              >
+                Logout
+              </button>
+              <span className="hidden sm:inline text-gray-400">•</span>
+              <DeleteAccountButton
+                className="text-red-500 hover:text-red-700 transition-colors text-sm font-medium"
+                onDeleted={() => {
+                  toast.success('Account deleted. Logging out…', { duration: 3000 });
+                  logout();
+                  navigate('/');
+                }}
+              />
+            </div>
+          }
+        />
 
         {/* Footer */}
         <footer className="text-center mt-8 text-sm text-gray-500">
