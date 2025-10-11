@@ -1,7 +1,6 @@
-// src/index.js
 import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter, HashRouter } from 'react-router-dom';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 import './index.css';
@@ -10,26 +9,16 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import App from './App';
 
-// ---- pick the safest Router for where we're running ----
-// Use HashRouter on production domains to avoid server rewrite issues
-const isProdHost =
-  typeof window !== 'undefined' &&
-  /onetechly\.com$/i.test(window.location.hostname);
-
-const Router = isProdHost ? HashRouter : BrowserRouter;
-// --------------------------------------------------------
-
 const rootEl = document.getElementById('root');
-if (!rootEl) {
-  throw new Error('Root element #root not found');
-}
-
-const root = ReactDOM.createRoot(rootEl);
+const root = createRoot(rootEl);
 
 root.render(
-  // NOTE: StrictMode is fine; it double-invokes some effects in dev only.
+  // Keep StrictMode in prod; if your providers do side-effects on mount,
+  // they must be idempotent because StrictMode mounts twice in dev.
   <React.StrictMode>
-    <Router>
+    {/* Router MUST be the outer wrapper for any provider using router hooks */}
+    <BrowserRouter basename={process.env.PUBLIC_URL || '/'}>
+      {/* ErrorBoundary must not remove the Router on fallback */}
       <ErrorBoundary>
         <AuthProvider>
           <SubscriptionProvider>
@@ -46,7 +35,7 @@ root.render(
           </SubscriptionProvider>
         </AuthProvider>
       </ErrorBoundary>
-    </Router>
+    </BrowserRouter>
   </React.StrictMode>
 );
 
