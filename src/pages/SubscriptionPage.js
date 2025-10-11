@@ -3,11 +3,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
-import { getDisplayEmail, getDisplayName } from '../utils/userDisplay';
-import Logo from '../components/Logo';
+import { getDisplayEmail} from '../utils/userDisplay'; //removed getDisplayName
+//import Logo from '../components/Logo';
 import ConfirmModal from '../components/ConfirmModal';
 import AppPageTitle from '../components/AppPageTitle';
-import { useAuth } from '../contexts/AuthContext';
+
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -63,7 +63,7 @@ export default function SubscriptionPage() {
   }, []);
 
   const email = useMemo(() => getDisplayEmail(user), [user]);
-  const name = useMemo(() => getDisplayName(user), [user]);
+  //const name = useMemo(() => getDisplayName(user), [user]);
 
   const planTier = (tier || 'free').toLowerCase();
   const isActive = planTier !== 'free';
@@ -323,7 +323,7 @@ export default function SubscriptionPage() {
     return <button disabled className={`${base} bg-green-100 text-green-800 border border-green-200`}>✓ Current Plan</button>;
   };
 
-  const statusText = isActive ? 'Active' : 'Inactive';
+  //const statusText = isActive ? 'Active' : 'Inactive';
 
   return (
     <div className="min-h-screen bg-gray-50">
