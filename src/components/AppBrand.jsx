@@ -1,36 +1,70 @@
-// AppBrand.jsx – product-only brand (logo + name) for the app shell
+// src/components/AppBrand.jsx
 import React from "react";
-import YcdLogo from "./YcdLogo";
+import { Link } from "react-router-dom";
 
-export default function AppBrand({ showText = true, size = 32 }) {
+/**
+ * AppBrand
+ * - Always renders a perfectly centered, crisp logo (SVG/PNG)
+ * - Keeps consistent sizing across mobile and desktop
+ * - Optional text next to the logo
+ */
+export default function AppBrand({
+  size = 28,            // pixel size of the square logo
+  showText = true,      // render "YouTube Content Downloader" text
+  to = "/app/dashboard",// click navigates here
+  title = "YouTube Content Downloader",
+  logoSrc = "/favicon_io/android-chrome-192x192.png", // fallback logo path
+}) {
+  const px = typeof size === "number" ? `${size}px` : size;
+
   return (
-    <div className="flex items-center gap-2">
-      <YcdLogo size={size} />
+    <Link
+      to={to}
+      className="flex items-center gap-2 select-none"
+      aria-label={title}
+    >
+      <span
+        className="inline-flex items-center justify-center rounded-xl overflow-hidden bg-white"
+        style={{ width: px, height: px }}
+      >
+        {/* The image is contained (not stretched), centered, and crisp */}
+        <img
+          src={logoSrc}
+          alt=""
+          loading="eager"
+          decoding="async"
+          className="block w-full h-full object-contain"
+          style={{
+            imageRendering: "auto",
+          }}
+        />
+      </span>
+
       {showText && (
-        <span className="font-semibold tracking-tight">
+        <span className="font-semibold tracking-tight text-gray-900">
           YouTube Content Downloader
         </span>
       )}
-    </div>
+    </Link>
   );
 }
 
-
-/////////////////////////////////////////////////////////
-// // src/components/AppBrand.jsx
+////////////////////////////////////////////////////////////////////////////
+// // AppBrand.jsx – product-only brand (logo + name) for the app shell
 // import React from "react";
-// import { Link } from "react-router-dom";
 // import YcdLogo from "./YcdLogo";
 
-// /** Brand block for the app shell (header + sidebar) */
-// export default function AppBrand({ to = "/dashboard", stacked = false, size = 32 }) {
+// export default function AppBrand({ showText = true, size = 32 }) {
 //   return (
-//     <Link to={to} className="flex items-center gap-2 shrink-0">
+//     <div className="flex items-center gap-2">
 //       <YcdLogo size={size} />
-//       <div className={stacked ? "leading-tight" : ""}>
-//         <div className="text-sm font-semibold text-gray-900">YouTube Content</div>
-//         <div className="text-[11px] -mt-0.5 text-gray-600">Downloader</div>
-//       </div>
-//     </Link>
+//       {showText && (
+//         <span className="font-semibold tracking-tight">
+//           YouTube Content Downloader
+//         </span>
+//       )}
+//     </div>
 //   );
 // }
+
+
