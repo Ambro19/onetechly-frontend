@@ -4,53 +4,109 @@ import { Link } from "react-router-dom";
 
 /**
  * AppBrand
- * - Circular logo with ring + shadow
- * - Crops away extra transparent/white padding via overflow + slight overfill
- * - Consistent sizing on mobile & desktop
+ * - Always renders a perfectly centered, circular logo with ring + shadow.
+ * - Masks/crops away any extra whitespace via rounded-full + overflow-hidden + object-cover.
+ * - Works for both YCD and OneTechly; pass logoSrc and size as needed.
  */
 export default function AppBrand({
-  size = 28,                         // pixel size of the circle
-  showText = true,                   // "YouTube Content Downloader" next to logo
+  size = 28,                       // square size in px
+  showText = true,
   to = "/app/dashboard",
   title = "YouTube Content Downloader",
-  // Use your YCD mark (keep your existing path if you prefer)
+  // Default to your YCD app icon; pass a different src when needed.
   logoSrc = "/favicon_io/android-chrome-192x192.png",
+  text = "YouTube Content Downloader",
 }) {
   const px = typeof size === "number" ? `${size}px` : size;
 
   return (
     <Link
       to={to}
-      className="flex items-center gap-2 select-none"
       aria-label={title}
+      className="flex items-center gap-2 select-none"
     >
+      {/* circular mask + ring + shadow */}
       <span
-        className="
-          inline-flex items-center justify-center
-          rounded-full overflow-hidden bg-white
-          ring-1 ring-gray-200 shadow-sm
-        "
+        className="inline-flex items-center justify-center rounded-full overflow-hidden ring-2 ring-blue-100 shadow-sm bg-white"
         style={{ width: px, height: px }}
       >
-        {/* Overfill & clip to hide extra whitespace around the icon */}
         <img
           src={logoSrc}
           alt=""
           loading="eager"
           decoding="async"
-          className="block w-[115%] h-[115%] object-contain -m-[7%]"
-          style={{ imageRendering: "auto" }}
+          className="block w-full h-full object-cover"
+          style={{ imageRendering: "auto", objectPosition: "center" }}
         />
       </span>
 
       {showText && (
         <span className="font-semibold tracking-tight text-gray-900">
-          YouTube Content Downloader
+          {text}
         </span>
       )}
     </Link>
   );
 }
+
+//*===============================================================================
+
+
+
+
+// // src/components/AppBrand.jsx
+// import React from "react";
+// import { Link } from "react-router-dom";
+
+// /**
+//  * AppBrand
+//  * - Circular logo with ring + shadow
+//  * - Crops away extra transparent/white padding via overflow + slight overfill
+//  * - Consistent sizing on mobile & desktop
+//  */
+// export default function AppBrand({
+//   size = 28,                         // pixel size of the circle
+//   showText = true,                   // "YouTube Content Downloader" next to logo
+//   to = "/app/dashboard",
+//   title = "YouTube Content Downloader",
+//   // Use your YCD mark (keep your existing path if you prefer)
+//   logoSrc = "/favicon_io/android-chrome-192x192.png",
+// }) {
+//   const px = typeof size === "number" ? `${size}px` : size;
+
+//   return (
+//     <Link
+//       to={to}
+//       className="flex items-center gap-2 select-none"
+//       aria-label={title}
+//     >
+//       <span
+//         className="
+//           inline-flex items-center justify-center
+//           rounded-full overflow-hidden bg-white
+//           ring-1 ring-gray-200 shadow-sm
+//         "
+//         style={{ width: px, height: px }}
+//       >
+//         {/* Overfill & clip to hide extra whitespace around the icon */}
+//         <img
+//           src={logoSrc}
+//           alt=""
+//           loading="eager"
+//           decoding="async"
+//           className="block w-[115%] h-[115%] object-contain -m-[7%]"
+//           style={{ imageRendering: "auto" }}
+//         />
+//       </span>
+
+//       {showText && (
+//         <span className="font-semibold tracking-tight text-gray-900">
+//           YouTube Content Downloader
+//         </span>
+//       )}
+//     </Link>
+//   );
+// }
 
 
 ////////////////////////////////////////////////////////////////////////////////
