@@ -13,23 +13,8 @@ export default function YCD() {
 
       <main className="py-10 sm:py-14">
         <div className="mx-auto max-w-screen-lg px-4 sm:px-6">
-          {/* Brand hero */}
+          {/* Hero section without top logo */}
           <div className="mx-auto max-w-3xl text-center">
-            {/* Circular, centered, professional logo — mobile & desktop */}
-            <div className="mx-auto mb-6 sm:mb-8 flex items-center justify-center">
-              <span
-                className="inline-flex rounded-full overflow-hidden ring-1 ring-gray-200 shadow-sm bg-white
-                              w-24 h-24 sm:w-28 sm:h-28"
-              >
-                {/* Overfill to hide extra padding while keeping the mark centered */}
-                <img
-                  src="/favicon_io/android-chrome-192x192.png"
-                  alt="YouTube Content Downloader"
-                  className="block w-[115%] h-[115%] object-contain -m-[7%]"
-                />
-              </span>
-            </div>
-
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">
               YouTube Content Downloader
             </h1>
@@ -48,7 +33,6 @@ export default function YCD() {
                 Sign in to start
               </Link>
 
-              {/* ✅ Create account button — now same blue gradient as “Sign in” */}
               <Link
                 to="/register"
                 className="inline-flex h-11 items-center justify-center rounded-xl
@@ -60,8 +44,8 @@ export default function YCD() {
             </div>
           </div>
 
-          {/* ✅ Circular logo section below (cleaned, cropped, ringed) */}
-          <div className="mx-auto mt-6 mb-4 flex justify-center">
+          {/* ✅ Keep only the clean circular logo below buttons */}
+          <div className="mx-auto mt-8 mb-4 flex justify-center">
             <AppBrand
               showText={false}
               size={68} // tweak between 56–84 for taste/responsiveness
@@ -71,9 +55,9 @@ export default function YCD() {
             />
           </div>
 
-          {/* Your existing feature cards/content below */}
+          {/* Optional: additional features or sections */}
           <section className="mt-10 sm:mt-14 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            {/* ... keep whatever you already have here ... */}
+            {/* ... keep your existing feature cards/content here ... */}
           </section>
         </div>
       </main>
