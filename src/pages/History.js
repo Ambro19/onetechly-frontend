@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayEmail, getDisplayName } from '../utils/userDisplay';
-import Logo from '../components/Logo';
-import AppPageTitle from '../components/AppPageTitle';
+import AppBrand from '../components/AppBrand';
+import YcdLogo from '../components/YcdLogo';
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -377,12 +377,26 @@ export default function History() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* ============ Professional Brand Header (Top-Left) ============ */}
+        <div className="mb-6">
+          <AppBrand
+            size={32}
+            showText={true}
+            label="OneTechly — YCD"
+            logoSrc="/logo_onetechly.png"
+            to="/app/dashboard"
+          />
+        </div>
+
+        {/* ============ Centered Page Header with Official YCD Logo ============ */}
         <header className="mb-6 text-center">
-          <div className="flex justify-center mb-3">
-            <Logo variant="large" showText={false} />
+          <div className="flex justify-center mb-4">
+            <YcdLogo size={56} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">🗂️ Download History</h1>
-          <div className="mt-1 text-sm text-gray-600">
+          
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">🗂️ Download History</h1>
+          <div className="text-sm text-gray-600">
             Logged in as: <span className="font-medium text-blue-700">{name}</span>{' '}
             (<span className="font-mono text-xs">{email}</span>)
           </div>
@@ -391,6 +405,7 @@ export default function History() {
             <div className="mt-1 text-xs text-gray-500">Last updated: {lastFetch.toLocaleTimeString()}</div>
           )}
 
+          {/* Navigation Buttons */}
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
             <button
               onClick={() => navigate('/download')}
@@ -436,37 +451,6 @@ export default function History() {
             ))}
           </div>
         </header>
-
-        {/* Page title bar */}
-        <AppPageTitle
-          title="Download History"
-          subtitle={
-            <>
-              Logged in as:{' '}
-              <span className="font-semibold text-blue-600">{user?.username || 'User'}</span>{' '}
-              (<span className="font-mono">{user?.email}</span>)
-            </>
-          }
-          right={
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="text-sm text-gray-700 hover:text-gray-900 underline"
-              >
-                ← Back to Dashboard
-              </button>
-              {/* FIX: use the real handler & loading flag */}
-              <button
-                onClick={handleManualRefresh}
-                className="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
-                disabled={loading}
-                title="Refresh history"
-              >
-                {loading ? 'Refreshing…' : 'Refresh'}
-              </button>
-            </div>
-          }
-        />
 
         {/* Error banner */}
         {connectionError && (
@@ -662,11 +646,8 @@ export default function History() {
   );
 }
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// frontend/src/pages/History.js — 429-safe loader, de-dupe, short cache; keeps your UI intact
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// // frontend/src/pages/History.js — 429-safe loader, de-dupe, short cache; keeps your UI intact
 // import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 // import { useNavigate } from 'react-router-dom';
 // import toast from 'react-hot-toast';
@@ -681,9 +662,10 @@ export default function History() {
 //   'http://localhost:8000';
 
 // // Debug helper
-// const debug = process.env.NODE_ENV === 'development'
-//   ? (...args) => console.log('[History]', ...args)
-//   : () => {};
+// const debug =
+//   process.env.NODE_ENV === 'development'
+//     ? (...args) => console.log('[History]', ...args)
+//     : () => {};
 
 // // ------ Small in-memory cache (per user) ------
 // const CACHE_TTL_MS = 30_000;
@@ -741,7 +723,7 @@ export default function History() {
 //   if (type.includes('audio_download') || type === 'audio') return 'Audio File';
 //   if (type.includes('video_download') || type === 'video') return 'Video File';
 
-//   if (rawType) return rawType.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
+//   if (rawType) return rawType.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
 //   return 'Content';
 // };
 
@@ -750,7 +732,10 @@ export default function History() {
 //   const units = ['B', 'KB', 'MB', 'GB'];
 //   let i = 0;
 //   let n = Number(bytes);
-//   while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+//   while (n >= 1024 && i < units.length - 1) {
+//     n /= 1024;
+//     i++;
+//   }
 //   return `${n.toFixed(n < 10 ? 1 : 0)} ${units[i]}`;
 // };
 
@@ -773,13 +758,15 @@ export default function History() {
 
 // // Normalize one item
 // const normalizeItem = (raw, idx) => {
-//   const get = (obj, ...keys) => keys.find(k => obj && obj[k] != null) && obj[keys.find(k => obj && obj[k] != null)];
+//   const get = (obj, ...keys) => keys.find((k) => obj && obj[k] != null) && obj[keys.find((k) => obj && obj[k] != null)];
 //   const id = get(raw, 'id') ?? `generated-${Date.now()}-${idx}`;
 //   const type = get(raw, 'type', 'transcript_type', 'file_type', 'category', 'action') || 'transcript';
-//   const fileFormat = get(raw, 'file_format', 'format', 'ext', 'extension') ||
+//   const fileFormat =
+//     get(raw, 'file_format', 'format', 'ext', 'extension') ||
 //     (type.includes('audio') ? 'mp3' : type.includes('video') ? 'mp4' : 'txt');
 //   const timestamp = get(raw, 'downloaded_at', 'created_at', 'timestamp', 'time') || new Date().toISOString();
-//   const fileName = get(raw, 'file_name', 'filename', 'name') ||
+//   const fileName =
+//     get(raw, 'file_name', 'filename', 'name') ||
 //     `${type}_${get(raw, 'video_id', 'youtube_id', 'yt_id') || 'unknown'}.${fileFormat}`;
 
 //   return {
@@ -811,7 +798,7 @@ export default function History() {
 //     // Retry on 429 or transient 5xx
 //     if ([429, 502, 503, 504].includes(status) || !res) {
 //       const wait = baseDelay * Math.pow(2, attempt); // 0.5s, 1s, 2s, 4s
-//       await new Promise(r => setTimeout(r, wait));
+//       await new Promise((r) => setTimeout(r, wait));
 //       attempt++;
 //       continue;
 //     }
@@ -843,7 +830,10 @@ export default function History() {
 //     mountedRef.current = true;
 //     const onScroll = () => setShowScrollToTop(window.scrollY > 400);
 //     window.addEventListener('scroll', onScroll);
-//     return () => { mountedRef.current = false; window.removeEventListener('scroll', onScroll); };
+//     return () => {
+//       mountedRef.current = false;
+//       window.removeEventListener('scroll', onScroll);
+//     };
 //   }, []);
 
 //   const scrollToTop = useCallback(() => {
@@ -877,7 +867,7 @@ export default function History() {
 //         // Try primary endpoint
 //         const endpoints = [
 //           `${API_BASE_URL}/user/download-history`,
-//           // Fallbacks if your backend supports other names:
+//           // Fallbacks:
 //           `${API_BASE_URL}/user/history`,
 //           `${API_BASE_URL}/download-history`,
 //         ];
@@ -889,24 +879,27 @@ export default function History() {
 //           if (!res) continue;
 //           if (res.ok) {
 //             const data = await res.json().catch(() => ({}));
-//             const arr = Array.isArray(data.downloads) ? data.downloads
-//                       : Array.isArray(data.items) ? data.items
-//                       : Array.isArray(data) ? data
-//                       : [];
+//             const arr = Array.isArray(data.downloads)
+//               ? data.downloads
+//               : Array.isArray(data.items)
+//               ? data.items
+//               : Array.isArray(data)
+//               ? data
+//               : [];
 //             got = arr;
 //             break;
 //           }
-//           // Map special 500 errors to human messages
 //           if (res.status === 500) {
 //             const txt = await res.text().catch(() => '');
-//             if (txt.includes('no such column')) throw new Error('Database needs migration - missing columns detected');
+//             if (txt.includes('no such column'))
+//               throw new Error('Database needs migration - missing columns detected');
 //             throw new Error('Database connection issue - please contact support');
 //           }
 //           if (res.status === 404) throw new Error('History endpoint not available');
 //           if (res.status === 429) throw new Error('Server is busy (429). Please retry in a moment.');
 //         }
 
-//         if (!got) got = []; // empty ok
+//         if (!got) got = [];
 //         // Normalize, sort, limit
 //         const normalized = got.slice(0, 120).map(normalizeItem);
 //         normalized.sort((a, b) => {
@@ -945,7 +938,7 @@ export default function History() {
 //       }
 //       inflight = null;
 //     }
-//   }, [token, loading, username]);
+//   }, [token, loading, username, hasLoaded]);
 
 //   // Load once on mount (or when user changes)
 //   useEffect(() => {
@@ -954,8 +947,7 @@ export default function History() {
 
 //   // Manual refresh
 //   const handleManualRefresh = useCallback(async () => {
-//     // Invalidate cache and force reload
-//     cache.delete(username);
+//     cache.delete(username); // Invalidate short cache
 //     setHasLoaded(false);
 //     await load();
 //   }, [load, username]);
@@ -963,23 +955,32 @@ export default function History() {
 //   // Filtering
 //   const filtered = useMemo(() => {
 //     if (active === 'all') return items;
-//     return items.filter(item => {
+//     return items.filter((item) => {
 //       const type = (item.type || '').toLowerCase();
 //       const format = (item.file_format || '').toLowerCase();
 //       const action = (item.action || '').toLowerCase();
 
 //       switch (active) {
 //         case 'transcripts':
-//           return type.includes('transcript') ||
-//                  type.includes('clean') || type.includes('unclean') ||
-//                  action.includes('transcript') ||
-//                  ['srt', 'vtt', 'txt'].includes(format);
+//           return (
+//             type.includes('transcript') ||
+//             type.includes('clean') ||
+//             type.includes('unclean') ||
+//             action.includes('transcript') ||
+//             ['srt', 'vtt', 'txt'].includes(format)
+//           );
 //         case 'audio':
-//           return type.includes('audio') || action.includes('audio') ||
-//                  ['mp3', 'm4a', 'aac', 'wav', 'flac'].includes(format);
+//           return (
+//             type.includes('audio') ||
+//             action.includes('audio') ||
+//             ['mp3', 'm4a', 'aac', 'wav', 'flac'].includes(format)
+//           );
 //         case 'video':
-//           return type.includes('video') || action.includes('video') ||
-//                  ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(format);
+//           return (
+//             type.includes('video') ||
+//             action.includes('video') ||
+//             ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(format)
+//           );
 //         default:
 //           return true;
 //       }
@@ -989,19 +990,30 @@ export default function History() {
 //   // Counts
 //   const counts = useMemo(() => {
 //     const cats = { transcripts: 0, audio: 0, video: 0 };
-//     items.forEach(item => {
+//     items.forEach((item) => {
 //       const type = (item.type || '').toLowerCase();
 //       const format = (item.file_format || '').toLowerCase();
 //       const action = (item.action || '').toLowerCase();
 
-//       if (type.includes('transcript') || type.includes('clean') || type.includes('unclean') ||
-//           action.includes('transcript') || ['srt', 'vtt', 'txt'].includes(format)) {
+//       if (
+//         type.includes('transcript') ||
+//         type.includes('clean') ||
+//         type.includes('unclean') ||
+//         action.includes('transcript') ||
+//         ['srt', 'vtt', 'txt'].includes(format)
+//       ) {
 //         cats.transcripts++;
-//       } else if (type.includes('audio') || action.includes('audio') ||
-//                  ['mp3', 'm4a', 'aac', 'wav', 'flac'].includes(format)) {
+//       } else if (
+//         type.includes('audio') ||
+//         action.includes('audio') ||
+//         ['mp3', 'm4a', 'aac', 'wav', 'flac'].includes(format)
+//       ) {
 //         cats.audio++;
-//       } else if (type.includes('video') || action.includes('video') ||
-//                  ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(format)) {
+//       } else if (
+//         type.includes('video') ||
+//         action.includes('video') ||
+//         ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(format)
+//       ) {
 //         cats.video++;
 //       }
 //     });
@@ -1025,26 +1037,33 @@ export default function History() {
 //           </div>
 
 //           {lastFetch && (
-//             <div className="mt-1 text-xs text-gray-500">
-//               Last updated: {lastFetch.toLocaleTimeString()}
-//             </div>
+//             <div className="mt-1 text-xs text-gray-500">Last updated: {lastFetch.toLocaleTimeString()}</div>
 //           )}
 
 //           <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
-//             <button onClick={() => navigate('/download')}
-//               className="px-4 py-3 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-medium transition-colors">
+//             <button
+//               onClick={() => navigate('/download')}
+//               className="px-4 py-3 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-medium transition-colors"
+//             >
 //               ← Downloads
 //             </button>
-//             <button onClick={() => navigate('/dashboard')}
-//               className="px-4 py-3 rounded-lg text-white bg-gray-800 hover:bg-gray-900 font-medium transition-colors">
+//             <button
+//               onClick={() => navigate('/dashboard')}
+//               className="px-4 py-3 rounded-lg text-white bg-gray-800 hover:bg-gray-900 font-medium transition-colors"
+//             >
 //               🏠 Dashboard
 //             </button>
-//             <button onClick={() => navigate('/activity')}
-//               className="px-4 py-3 rounded-lg text-white bg-purple-600 hover:bg-purple-700 font-medium transition-colors">
+//             <button
+//               onClick={() => navigate('/activity')}
+//               className="px-4 py-3 rounded-lg text-white bg-purple-600 hover:bg-purple-700 font-medium transition-colors"
+//             >
 //               📋 Activity
 //             </button>
-//             <button onClick={handleManualRefresh} disabled={loading}
-//               className="px-4 py-3 rounded-lg text-white bg-green-600 hover:bg-green-700 font-medium disabled:opacity-50 transition-colors">
+//             <button
+//               onClick={handleManualRefresh}
+//               disabled={loading}
+//               className="px-4 py-3 rounded-lg text-white bg-green-600 hover:bg-green-700 font-medium disabled:opacity-50 transition-colors"
+//             >
 //               {loading ? '🔄 Loading...' : '🔄 Refresh'}
 //             </button>
 //           </div>
@@ -1067,7 +1086,7 @@ export default function History() {
 //           </div>
 //         </header>
 
-//         {/* Header */}
+//         {/* Page title bar */}
 //         <AppPageTitle
 //           title="Download History"
 //           subtitle={
@@ -1085,24 +1104,31 @@ export default function History() {
 //               >
 //                 ← Back to Dashboard
 //               </button>
+//               {/* FIX: use the real handler & loading flag */}
 //               <button
-//                 onClick={handleRefresh}
+//                 onClick={handleManualRefresh}
 //                 className="text-sm text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
-//                 disabled={isRefreshing}
+//                 disabled={loading}
 //                 title="Refresh history"
 //               >
-//                 {isRefreshing ? 'Refreshing…' : 'Refresh'}
+//                 {loading ? 'Refreshing…' : 'Refresh'}
 //               </button>
 //             </div>
 //           }
 //         />
+
 //         {/* Error banner */}
 //         {connectionError && (
 //           <div className="mb-6 bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-4">
 //             <div className="flex items-start">
 //               <div className="flex-shrink-0">
 //                 <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-//                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+//                   <path
+//                     strokeLinecap="round"
+//                     strokeLinejoin="round"
+//                     strokeWidth={2}
+//                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+//                   />
 //                 </svg>
 //               </div>
 //               <div className="ml-3 flex-1">
@@ -1115,12 +1141,17 @@ export default function History() {
 //                     : connectionError}
 //                 </p>
 //                 <div className="flex gap-2">
-//                   <button onClick={handleManualRefresh} disabled={loading}
-//                     className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors">
+//                   <button
+//                     onClick={handleManualRefresh}
+//                     disabled={loading}
+//                     className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+//                   >
 //                     {loading ? '🔄 Retrying...' : '🔄 Try Again'}
 //                   </button>
-//                   <button onClick={() => setConnectionError(null)}
-//                     className="bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors">
+//                   <button
+//                     onClick={() => setConnectionError(null)}
+//                     className="bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+//                   >
 //                     ✕ Dismiss
 //                   </button>
 //                 </div>
@@ -1151,13 +1182,17 @@ export default function History() {
 //                   : `You haven't downloaded any ${active} content yet. Try a different category or start a new download.`}
 //               </p>
 //               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-//                 <button onClick={() => navigate('/download')}
-//                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+//                 <button
+//                   onClick={() => navigate('/download')}
+//                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+//                 >
 //                   Start Downloading
 //                 </button>
 //                 {items.length > 0 && (
-//                   <button onClick={() => setActive('all')}
-//                     className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium">
+//                   <button
+//                     onClick={() => setActive('all')}
+//                     className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+//                   >
 //                     View All Downloads
 //                   </button>
 //                 )}
@@ -1182,13 +1217,15 @@ export default function History() {
 //                           </span>
 //                         )}
 
-//                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-//                           item.status === 'completed'
-//                             ? 'bg-green-100 text-green-800'
-//                             : item.status === 'processing'
-//                             ? 'bg-yellow-100 text-yellow-800'
-//                             : 'bg-red-100 text-red-800'
-//                         }`}>
+//                         <span
+//                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+//                             item.status === 'completed'
+//                               ? 'bg-green-100 text-green-800'
+//                               : item.status === 'processing'
+//                               ? 'bg-yellow-100 text-yellow-800'
+//                               : 'bg-red-100 text-red-800'
+//                           }`}
+//                         >
 //                           {item.status || 'completed'}
 //                         </span>
 //                       </div>
@@ -1205,7 +1242,9 @@ export default function History() {
 //                             🎬 <span className="font-mono">{item.video_id}</span>
 //                           </span>
 //                         )}
-//                         <span className="flex items-center gap-1">📄 {item.file_format?.toUpperCase() || 'Unknown'}</span>
+//                         <span className="flex items-center gap-1">
+//                           📄 {item.file_format?.toUpperCase() || 'Unknown'}
+//                         </span>
 //                         <span className="flex items-center gap-1">📏 {formatSize(item.file_size)}</span>
 //                         {item.processing_time && (
 //                           <span className="flex items-center gap-1">⏱️ {formatProcessing(item.processing_time)}</span>
@@ -1217,9 +1256,7 @@ export default function History() {
 //                     </div>
 
 //                     <div className="text-right flex-shrink-0">
-//                       <div className="text-sm font-medium text-gray-900 mb-1">
-//                         {formatWhen(item.downloaded_at)}
-//                       </div>
+//                       <div className="text-sm font-medium text-gray-900 mb-1">{formatWhen(item.downloaded_at)}</div>
 //                       <div className="text-xs text-gray-500">#{index + 1}</div>
 //                     </div>
 //                   </div>
@@ -1273,4 +1310,5 @@ export default function History() {
 //     </div>
 //   );
 // }
+
 
