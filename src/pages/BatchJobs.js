@@ -7,7 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
-import Logo from '../components/Logo';
+import AppBrand from '../components/AppBrand';
+import YcdLogo from '../components/YcdLogo';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
@@ -500,7 +501,7 @@ const isValidYouTubeURL = (url) => {
 
 export default function BatchJobs() {
   const navigate = useNavigate();
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
   const { tier, refreshSubscriptionStatus, subscriptionStatus } = useSubscription();
 
   const [urlsText, setUrlsText] = useState('');
@@ -1063,30 +1064,55 @@ export default function BatchJobs() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex flex-col items-center text-center mb-6">
-          <Logo variant="large" showText={false} />
-          <h1 className="mt-2 text-3xl font-bold text-gray-900">⚙️ Batch Jobs (Beta)</h1>
-          <p className="text-sm text-gray-600 mt-1">
+
+        {/* ============ Professional Brand Header (Top-Left) ============ */}
+        <div className="mb-6">
+          <AppBrand
+            size={32}
+            showText={true}
+            label="OneTechly — YCD"
+            logoSrc="/logo_onetechly.png"
+            to="/app/dashboard"
+          />
+        </div>
+
+        {/* ============ Centered Page Header with Official YCD Logo ============ */}
+        <header className="mb-6 text-center">
+          <div className="flex justify-center items-center mb-4">
+            <YcdLogo size={56} />
+          </div>
+
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">⚙️ Batch Jobs (Beta)</h1>
+          <p className="text-sm text-gray-600 mb-3">
             Process multiple videos at once. Choose transcript, audio, or video batch processing.
           </p>
-          <div className="mt-3 flex gap-3">
-            <button onClick={() => navigate('/dashboard')} className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors">
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-center gap-3 mb-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            >
               ← Back to Dashboard
             </button>
-            <button onClick={() => navigate('/subscription')} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            <button
+              onClick={() => navigate('/subscription')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
               💳 Manage Subscription
             </button>
           </div>
+
+          {/* Plan Status Messages */}
           {!canUseBatch && (
-            <div className="mt-3 text-xs text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded">
+            <div className="text-xs text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded inline-block">
               Batch Jobs are available on <b>Pro</b> and <b>Premium</b> plans.
             </div>
           )}
           {isPro && (
-            <div className="mt-2 text-xs text-gray-500">Pro: up to {PRO_MAX_LINKS} links per batch.</div>
+            <div className="text-xs text-gray-500">Pro: up to {PRO_MAX_LINKS} links per batch.</div>
           )}
-        </div>
+        </header>
 
         {/* FIXED: Usage Limit Warning */}
         <UsageLimitWarning />
@@ -1375,4 +1401,6 @@ export default function BatchJobs() {
     </div>
   );
 }
+
+
 
