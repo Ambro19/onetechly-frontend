@@ -1,6 +1,6 @@
 # 🎬 YouTube Content Downloader (YCD) — by OneTechly
 
-![OneTechly Header](public/readme-assets/onetechly-home.png)
+<!-- ![OneTechly Header](public/readme-assets/onetechly-home.png) -->
 
 **OneTechly** builds cloud-native SaaS solutions that simplify how creators, developers, and businesses manage content.  
 **YouTube Content Downloader (YCD)** is a sleek, mobile-ready application that lets users extract clean YouTube transcripts, MP3 audio, or full video downloads — all within a secure, scalable, and subscription-enabled platform.
