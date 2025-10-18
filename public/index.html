@@ -1,4 +1,77 @@
+<!--=============IMPORTANT: ✅ Title tag: <title>OneTechly — YouTube Content Downloader (YCD)</title> =======-->
+
 <!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Viewport + safe area -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!-- Force light UI everywhere (discourage auto-darkening on mobile) -->
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <!-- Keep browser UI bars light in both light/dark device modes -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#f8fafc" />
+    <meta name="msapplication-TileColor" content="#f8fafc" />
+
+    <!-- iOS PWA/browser chrome -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="YT Downloader" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <title>OneTechly — YouTube Content Downloader (YCD)</title>
+    <meta name="application-name" content="YouTube Content Downloader" />
+    <meta
+      name="description"
+      content="Download YouTube transcripts (TXT/VTT/SRT), extract audio (MP3), and save videos with full mobile support."
+    />
+
+    <!-- Social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="YouTube Content Downloader" />
+    <meta property="og:description" content="Download YouTube transcripts, extract audio, and save videos — mobile friendly." />
+    <meta property="og:url" content="http://localhost:3000" />
+    <meta property="og:image" content="%PUBLIC_URL%/favicon_io/android-chrome-512x512.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="YouTube Content Downloader" />
+    <meta name="twitter:description" content="Download YouTube transcripts, extract audio, and save videos — mobile friendly." />
+    <meta name="twitter:image" content="%PUBLIC_URL%/favicon_io/android-chrome-512x512.png" />
+
+    <meta name="robots" content="index,follow" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- PWA + icons -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon_io/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon_io/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon_io/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon_io/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon_io/android-chrome-512x512.png" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Hard-stop any auto-dark painting of native controls -->
+    <style>
+      :root { color-scheme: light; }
+      @media (prefers-color-scheme: dark) {
+        html, body { background: #f8fafc !important; color: #0f172a !important; }
+        input, select, textarea, button { background: #ffffff; color: #0f172a; }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run YouTube Content Downloader.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
+
+<!--====IMPORTANT: ✅ Title tag: <title>YouTube Content Downloader</title> ==========-->
+
+<!-- <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -66,9 +139,6 @@
     <div id="root"></div>
   </body>
 </html>
-
-
-<!-- ============================================================= -->
  
  <!DOCTYPE html>
 <html lang="en">
@@ -84,4 +154,4 @@
 </html>
 
 
-
+ -->
