@@ -50,7 +50,7 @@ It's designed for simplicity, elegance, and reliability — with the same polish
 ### 🎯 Product Landing — YouTube Content Downloader
 *Clean, branded entry page for users to sign in or create an account.*
 
-![YCD Landing Page](public/readme-assets/ycd-landing.png)
+![YCD Landing Page](public/readme-assets/ycd-landing.png))
 
 ---
 
