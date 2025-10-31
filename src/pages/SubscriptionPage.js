@@ -346,15 +346,14 @@ export default function SubscriptionPage() {
             (<span className="font-mono">{user?.email}</span>)
           </div>
 
-          {/* Navigation Actions */}
-          <div className="mt-3 flex items-center justify-center gap-3">
+          {/* Navigation Actions - UPDATED: Back to Dashboard button now matches Download page */}
+          <div className="mt-4 flex gap-4 justify-center flex-wrap">
             <button
               onClick={() => navigate('/dashboard')}
-              className="text-sm text-gray-700 hover:text-gray-900 underline transition-colors"
+              className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             >
               ← Back to Dashboard
             </button>
-            <span className="text-gray-400">•</span>
             <button
               onClick={logout}
               className="text-sm text-red-600 hover:text-red-800 underline transition-colors"
