@@ -1,4 +1,4 @@
-# 🎬 YouTube Content Downloader (YCD) — by OneTechly
+<!-- # 🎬 YouTube Content Downloader (YCD) — by OneTechly
 
 **OneTechly** builds cloud-native SaaS solutions that simplify how creators, developers, and businesses manage content. **YouTube Content Downloader (YCD)** is a sleek, mobile-ready application that lets users extract clean YouTube transcripts, MP3 audio, or full video downloads — all within a secure, scalable, and subscription-enabled platform.
 
@@ -382,4 +382,100 @@ This project is licensed under the MIT License. See `LICENSE` file for details.
 
 ---
 
-**Built with ❤️ by OneTechly**
+**Built with ❤️ by OneTechly** -->
+
+# 🎬 YouTube Content Downloader (YCD) — by OneTechly
+
+**OneTechly** builds cloud-native SaaS that helps creators, developers, and teams manage video content fast and securely.
+
+**YouTube Content Downloader (YCD)** is a sleek web app to:
+- extract **clean transcripts**
+- convert to **MP3 audio**
+- download **full videos**
+
+All wrapped with authentication, usage tracking, subscriptions, and production-grade security.
+
+🌐 **Live App:** https://onetechly.com/ycd  
+🏢 **Company:** https://onetechly.com
+
+---
+
+## 🚀 Overview
+
+- **Frontend:** React + Tailwind (responsive, mobile-first)  
+- **Backend:** FastAPI (Python) + SQLAlchemy  
+- **Payments:** Stripe (webhooks + subscription sync)  
+- **Deployment:** Render (static site + web service)  
+- **Database:** PostgreSQL (prod) / SQLite (dev)  
+- **Security:** JWT auth, CSP/HSTS headers, strict CORS
+
+---
+
+## ✨ Features
+
+| Category | Description |
+| --- | --- |
+| 🧠 Transcripts | Clean + timestamped, multiple formats |
+| 🎧 Audio | MP3 extraction with metadata & cover |
+| 🎥 Video | Multi-quality MP4 downloads |
+| 🧾 Subscriptions | Stripe-powered Pro & Premium tiers |
+| 🔒 Auth | JWT with password reset |
+| 📱 Mobile-Ready | Optimized UI across devices |
+| 📊 Dashboard | Usage, history, batch jobs |
+| ☁️ Scalable | Cloud-native on Render |
+| 🛡️ Production Security | CSP, HSTS, strict CORS |
+
+---
+
+## 🖼 Screenshots
+
+> Images use absolute raw GitHub URLs so they display on **GitHub Mobile** and desktop alike.
+> If your repo/org changes, update the `Ambro19/onetechly-frontend` path.
+
+### 🌐 OneTechly Homepage
+*Professional SaaS landing with modern UI components.*
+
+<p align="center">
+  <img alt="OneTechly Homepage"
+       src="https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/onetechly-home.png"
+       width="900">
+</p>
+
+---
+
+### 🎯 Product Landing — YouTube Content Downloader
+*Clean, branded entry page for users to sign in or create an account.*
+
+<p align="center">
+  <img alt="YCD Landing Page"
+       src="https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/ycd-landing.png"
+       width="900">
+</p>
+
+---
+
+### 📊 Dashboard Page
+*Modern user dashboard with subscription insights and activity logs.*
+
+<p align="center">
+  <img alt="YCD Dashboard"
+       src="https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/ycd-dashboard.png"
+       width="900">
+</p>
+
+---
+
+## ⚙️ Installation
+
+### Prerequisites
+- **Node.js** v16+  
+- **Python** 3.9+  
+- **PostgreSQL** (production) or SQLite (development)  
+- **Stripe account** (for payments)
+
+### Frontend Setup
+
+```bash
+git clone https://github.com/Ambro19/onetechly-frontend.git
+cd onetechly-frontend
+npm install
