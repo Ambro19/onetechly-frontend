@@ -1,4 +1,5 @@
 // frontend/src/pages/Download.js — Production-ready (limits-aware + next_reset + robust usage sync)
+// - FIXED: Renamed "Unclean" to "Timestamped" for professional appearance
 // - Displays next reset date ("Resets Nov 1")
 // - Disables actions when limits are reached (computed locally from subscriptionStatus)
 // - Refreshes + short-polls subscription after successful operations to keep Dashboard in sync
@@ -119,7 +120,7 @@ export default function DownloadPage() {
     if (atLimit(actionKey)) {
       const label =
         actionKey === 'clean_transcripts' ? 'clean transcripts' :
-        actionKey === 'unclean_transcripts' ? 'unclean transcripts' :
+        actionKey === 'unclean_transcripts' ? 'timestamped transcripts' :
         actionKey === 'audio_downloads' ? 'audio downloads' :
         actionKey === 'video_downloads' ? 'video downloads' : 'usage';
       return `Monthly limit reached for ${label}. Please upgrade your plan.`;
@@ -487,7 +488,7 @@ export default function DownloadPage() {
 
   const audioAtLimit = atLimit('audio_downloads');
   const videoAtLimit = atLimit('video_downloads');
-  const uncleanAtLimit = atLimit('unclean_transcripts');
+  const timestampedAtLimit = atLimit('unclean_transcripts');
 
   const primaryBtnClass = `flex-1 py-3 px-6 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
     xUiPrimaryDisabled
@@ -585,7 +586,7 @@ export default function DownloadPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-xs">
               <div>📄 Clean: {safeFormatUsage('clean_transcripts')}</div>
-              <div>🕒 Unclean: {safeFormatUsage('unclean_transcripts')}</div>
+              <div>🕒 Timestamped: {safeFormatUsage('unclean_transcripts')}</div>
               <div>🎵 Audio: {safeFormatUsage('audio_downloads')}</div>
               <div>🎬 Video: {safeFormatUsage('video_downloads')}</div>
             </div>
@@ -718,7 +719,7 @@ export default function DownloadPage() {
                 onChange={() => setTranscriptType('unclean')}
                 className="mr-2"
               />
-              <div className="font-bold text-gray-900">🕒 Unclean Format</div>
+              <div className="font-bold text-gray-900">🕒 Timestamped Format</div>
               <div className="text-sm text-gray-600 mb-2">With timestamps</div>
               <div className="text-xs text-blue-600 mb-2">Usage: {safeFormatUsage('unclean_transcripts')}</div>
 
@@ -915,3 +916,4 @@ export default function DownloadPage() {
   );
 }
 
+//==============End Download Module================
