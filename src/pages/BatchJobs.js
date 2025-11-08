@@ -501,7 +501,7 @@ const isValidYouTubeURL = (url) => {
 
 export default function BatchJobs() {
   const navigate = useNavigate();
-  const { token, isAuthenticated, user } = useAuth();
+  const { token, isAuthenticated, _user } = useAuth();
   const { tier, refreshSubscriptionStatus, subscriptionStatus } = useSubscription();
 
   const [urlsText, setUrlsText] = useState('');
