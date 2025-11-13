@@ -66,32 +66,6 @@ function normalizeError(err) {
   return out;
 }
 
-// // ----- Small exponential-backoff helper (handles Render cold starts, 503s, brief flaps)
-// async function withRetry(fn, {
-//   attempts = 8,           // ~50–60s max
-//   firstDelayMs = 800,
-//   maxDelayMs = 6000,
-//   shouldRetry = (error) => {
-//     const status = error?.response?.status;
-//     // Retry on 429/503/504 and on network errors (no response)
-//     return !error?.response || status === 429 || status === 503 || status === 504;
-//   },
-// } = {}) {
-//   let delay = firstDelayMs;
-//   let lastErr;
-//   for (let i = 0; i < attempts; i++) {
-//     try {
-//       return await fn();
-//     } catch (err) {
-//       lastErr = err;
-//       if (i === attempts - 1 || !shouldRetry(err)) break;
-//       await new Promise((r) => setTimeout(r, delay));
-//       delay = Math.min(maxDelayMs, Math.round(delay * 1.6));
-//     }
-//   }
-//   throw normalizeError(lastErr);
-// }
-
 //Fix: Capture delay value before setTimeout:
 async function withRetry(fn, {
   attempts = 8,
