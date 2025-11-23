@@ -1,10 +1,21 @@
-// frontend/src/pages/Download.js — Production-ready (limits-aware + next_reset + robust usage sync)
-// - FIXED: Renamed "Unclean" to "Timestamped" for professional appearance
-// - Displays next reset date ("Resets Nov 1")
-// - Disables actions when limits are reached (computed locally from subscriptionStatus)
-// - Refreshes + short-polls subscription after successful operations to keep Dashboard in sync
-// - Polished UI with segmented controls, mobile handling, auto-start download
-// - VERIFIED: Correct API payload format for transcript downloads (clean_transcript + format)
+// frontend/src/pages/Download.js — Production-ready (limits-aware + helper integration)
+// - Still shows subscription limits, next_reset, and handles cloud-only success
+// - NEW: If backend responds with needs_local_helper, it will:
+//     1) Call the YCD Desktop Helper running on the user's machine
+//     2) After success, call /helper/report_usage to keep usage/history in sync
+// - YCD Desktop Helper API (expected):
+//     POST http://127.0.0.1:17682/ycd-helper/run
+//     Body: {
+//       type: "transcript" | "audio" | "video",
+//       video_id: "XXXXXXXXXXX",
+//       clean_transcript?: boolean,
+//       format?: "srt" | "vtt" | null,
+//       quality?: "high"|"medium"|"low"|"720p"|...,
+//     }
+//     Response (transcript example):
+//       { ok: true, type: "transcript", transcript: "...", format: "txt"|"srt"|"vtt", file_size: 12345 }
+//     Response (audio/video example):
+//       { ok: true, type: "audio"|"video", download_url: "/files/...", filename: "...", file_size: 123, file_size_mb: 1.2, title, uploader, duration }
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +32,10 @@ const API_BASE_URL =
   'http://localhost:8000';
 
 const AUTO_START_DOWNLOAD = true;
+
+// Local helper (desktop app) base URL
+const HELPER_BASE_URL =
+  process.env.REACT_APP_YCD_HELPER_URL || 'http://127.0.0.1:17682';
 
 const isMobile = () =>
   /android|iphone|ipad|ipod|blackberry|windows phone|mobile/i.test(
@@ -78,7 +93,7 @@ export default function DownloadPage() {
       /(?:youtu\.be\/)([^&\n?#]+)/,
       /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
       /(?:youtube\.com\/shorts\/)([^&\n?#]+)/,
-      /[?&]v=([^&\n?#]+)/
+      /[?&]v=([^&\n?#]+)/,
     ];
     for (const p of patterns) {
       const m = input.match(p);
@@ -90,7 +105,7 @@ export default function DownloadPage() {
   const previewVideoId = extractVideoId(youtubeInput);
 
   const limits = useMemo(() => subscriptionStatus?.limits || {}, [subscriptionStatus]);
-  const usage  = useMemo(() => subscriptionStatus?.usage  || {}, [subscriptionStatus]);
+  const usage = useMemo(() => subscriptionStatus?.usage || {}, [subscriptionStatus]);
 
   const isUnlimited = (limit) => limit === 'unlimited' || limit === Infinity;
 
@@ -120,10 +135,15 @@ export default function DownloadPage() {
     if (!actionKey) return null;
     if (atLimit(actionKey)) {
       const label =
-        actionKey === 'clean_transcripts' ? 'clean transcripts' :
-        actionKey === 'unclean_transcripts' ? 'timestamped transcripts' :
-        actionKey === 'audio_downloads' ? 'audio downloads' :
-        actionKey === 'video_downloads' ? 'video downloads' : 'usage';
+        actionKey === 'clean_transcripts'
+          ? 'clean transcripts'
+          : actionKey === 'unclean_transcripts'
+          ? 'timestamped transcripts'
+          : actionKey === 'audio_downloads'
+          ? 'audio downloads'
+          : actionKey === 'video_downloads'
+          ? 'video downloads'
+          : 'usage';
       return `Monthly limit reached for ${label}. Please upgrade your plan.`;
     }
     return null;
@@ -145,7 +165,7 @@ export default function DownloadPage() {
         navigator.mediaSession.metadata = new window.MediaMetadata({
           title: data.title || 'Unknown Title',
           artist: data.uploader || 'Unknown Channel',
-          album: 'YouTube Content'
+          album: 'YouTube Content',
         });
       }
     } catch {}
@@ -186,26 +206,266 @@ export default function DownloadPage() {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }, [subscriptionStatus]);
 
-  const pollUsageSync = useCallback(async (beforeUsageMap, keyToObserve) => {
-    const maxTries = 6;
-    let tries = 0;
+  const pollUsageSync = useCallback(
+    async (beforeUsageMap, keyToObserve) => {
+      const maxTries = 6;
+      let tries = 0;
 
-    while (tries < maxTries && !pollStopRef.current) {
-      tries += 1;
-      try {
-        await refreshSubscriptionStatus();
-      } catch {}
-      await new Promise((res) => setTimeout(res, 400));
+      while (tries < maxTries && !pollStopRef.current) {
+        tries += 1;
+        try {
+          await refreshSubscriptionStatus();
+        } catch {}
+        await new Promise((res) => setTimeout(res, 400));
 
-      const currentUsed = getUsed(keyToObserve);
-      const beforeUsed = Number(beforeUsageMap?.[keyToObserve] ?? 0);
+        const currentUsed = getUsed(keyToObserve);
+        const beforeUsed = Number(beforeUsageMap?.[keyToObserve] ?? 0);
 
-      if (currentUsed > beforeUsed) {
-        return true;
+        if (currentUsed > beforeUsed) {
+          return true;
+        }
       }
-    }
-    return false;
-  }, [refreshSubscriptionStatus, subscriptionStatus]);
+      return false;
+    },
+    [refreshSubscriptionStatus]
+  );
+
+  // Report usage to backend when helper completes a download
+  const reportHelperUsage = useCallback(
+    async ({ usageType, youtubeId, fileFormat, quality, fileSize, processingTime }) => {
+      try {
+        if (!usageType) return;
+        const res = await fetch(`${API_BASE_URL}/helper/report_usage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            youtube_id: youtubeId,
+            usage_type: usageType,
+            file_format: fileFormat,
+            quality,
+            file_size: fileSize,
+            processing_time: processingTime,
+          }),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          console.warn('[YCD helper] usage report failed:', e.detail || res.status);
+        }
+      } catch (err) {
+        console.warn('[YCD helper] usage report error:', err);
+      }
+    },
+    [token]
+  );
+
+  // Run download via local YCD Desktop Helper when backend returns needs_local_helper
+  const runWithHelper = useCallback(
+    async (helperEnvelope, beforeUsage) => {
+      const helperTask = helperEnvelope?.helper_task || {};
+      const baseUsageType = helperEnvelope?.usage_type || actionKey;
+
+      const videoIdFromTask = helperTask.youtube_id || helperTask.video_id || extractVideoId(youtubeInput);
+      const typeFromTask = helperTask.type || downloadType;
+
+      if (!videoIdFromTask || videoIdFromTask.length !== 11) {
+        throw new Error('Desktop helper task is missing a valid YouTube video ID.');
+      }
+
+      const effectiveUsageType =
+        baseUsageType ||
+        (typeFromTask === 'transcript'
+          ? transcriptType === 'clean'
+            ? 'clean_transcripts'
+            : 'unclean_transcripts'
+          : typeFromTask === 'audio'
+          ? 'audio_downloads'
+          : typeFromTask === 'video'
+          ? 'video_downloads'
+          : null);
+
+      const payload = {
+        type: typeFromTask,
+        video_id: videoIdFromTask,
+        clean_transcript:
+          typeFromTask === 'transcript'
+            ? helperTask.clean_transcript ?? (transcriptType === 'clean')
+            : undefined,
+        format:
+          typeFromTask === 'transcript'
+            ? helperTask.format ?? (transcriptType === 'unclean' ? uncleanFormat : null)
+            : undefined,
+        quality:
+          typeFromTask === 'audio'
+            ? helperTask.quality ?? audioQuality
+            : typeFromTask === 'video'
+            ? helperTask.quality ?? videoQuality
+            : undefined,
+      };
+
+      const helperUrl = `${HELPER_BASE_URL}/ycd-helper/run`;
+
+      let helperData;
+      try {
+        const res = await fetch(helperUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          throw new Error(
+            'YCD Desktop Helper is not running or refused the request. Please ensure it is installed and running.'
+          );
+        }
+
+        helperData = await res.json().catch(() => ({}));
+      } catch (err) {
+        console.error('[YCD helper] request failed:', err);
+        throw new Error(
+          'Could not reach the YCD Desktop Helper. Please make sure it is installed and running on your device.'
+        );
+      }
+
+      if (!helperData) {
+        throw new Error('YCD Desktop Helper returned an empty response.');
+      }
+
+      const okFlag =
+        helperData.ok === true ||
+        !!helperData.transcript ||
+        !!helperData.download_url ||
+        !!helperData.direct_download_url;
+
+      if (!okFlag) {
+        throw new Error(helperData.error || 'YCD Desktop Helper failed to process this video.');
+      }
+
+      // ----- Transcript via helper -----
+      if (typeFromTask === 'transcript') {
+        const text = helperData.transcript || '';
+        if (!text) {
+          throw new Error('YCD Desktop Helper did not return any transcript.');
+        }
+
+        setVideoId(videoIdFromTask);
+        setResult(text);
+        setDownloadCompleted(true);
+        toast.success('📄 Transcript ready (via desktop helper)');
+
+        await reportHelperUsage({
+          usageType: effectiveUsageType,
+          youtubeId: videoIdFromTask,
+          fileFormat:
+            helperData.format ||
+            (payload.format || (payload.clean_transcript ? 'txt' : 'txt')),
+          quality: 'default',
+          fileSize: helperData.file_size || text.length,
+          processingTime: helperData.processing_time || 0,
+        });
+
+        if (effectiveUsageType) {
+          await pollUsageSync(beforeUsage, effectiveUsageType);
+        }
+
+        return;
+      }
+
+      // ----- Audio / Video via helper -----
+      if (typeFromTask === 'audio' || typeFromTask === 'video') {
+        const downloadUrlLocal =
+          helperData.direct_download_url || helperData.download_url || '';
+        if (!downloadUrlLocal) {
+          throw new Error('YCD Desktop Helper did not provide a download URL.');
+        }
+
+        const href =
+          downloadUrlLocal.startsWith('http') || downloadUrlLocal.startsWith('https')
+            ? downloadUrlLocal
+            : `${HELPER_BASE_URL}${downloadUrlLocal.startsWith('/') ? '' : '/'}${downloadUrlLocal}`;
+
+        const meta = {
+          title: helperData.title || 'Unknown Title',
+          uploader: helperData.uploader || 'Unknown Channel',
+          duration: helperData.duration || 0,
+          filename: helperData.filename,
+          fileSize: helperData.file_size_mb,
+          youtubeId: videoIdFromTask,
+        };
+
+        setVideoId(videoIdFromTask);
+        setDownloadUrl(href);
+        setVideoMetadata(meta);
+        setDownloadCompleted(true);
+
+        if (typeFromTask === 'audio') {
+          updateMediaPlayerTitle(helperData);
+        }
+
+        if (AUTO_START_DOWNLOAD && href && !autoTriggeredRef.current) {
+          autoTriggeredRef.current = true;
+          try {
+            if (isMobile()) {
+              window.open(href, '_blank', 'noopener');
+            } else {
+              const a = document.createElement('a');
+              a.href = href;
+              a.download = meta.filename || '';
+              a.rel = 'noopener';
+              a.target = '_self';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            }
+            setDownloadStarted(true);
+            setSuccessMessage('Successfully Downloaded');
+            toast.success('💾 File download started (via desktop helper)');
+          } catch (err) {
+            console.error('[YCD helper] auto-start download failed:', err);
+          }
+        }
+
+        await reportHelperUsage({
+          usageType: effectiveUsageType,
+          youtubeId: videoIdFromTask,
+          fileFormat: typeFromTask === 'audio' ? 'mp3' : 'mp4',
+          quality: payload.quality,
+          fileSize: helperData.file_size || 0,
+          processingTime: helperData.processing_time || 0,
+        });
+
+        if (effectiveUsageType) {
+          await pollUsageSync(
+            beforeUsage,
+            effectiveUsageType === 'audio_downloads' || effectiveUsageType === 'video_downloads'
+              ? effectiveUsageType
+              : typeFromTask === 'audio'
+              ? 'audio_downloads'
+              : 'video_downloads'
+          );
+        }
+
+        return;
+      }
+
+      throw new Error('Unsupported helper task type.');
+    },
+    [
+      actionKey,
+      audioQuality,
+      downloadType,
+      pollUsageSync,
+      reportHelperUsage,
+      transcriptType,
+      uncleanFormat,
+      videoQuality,
+      youtubeInput,
+    ]
+  );
 
   const handleTranscriptDownload = async () => {
     if (!result) return toast.error('No transcript available');
@@ -244,15 +504,13 @@ export default function DownloadPage() {
       if (!id || id.length !== 11) throw new Error('Please enter a valid YouTube video ID or URL');
 
       let endpoint, payload;
-      
-      // ============ VERIFIED API PAYLOAD FORMAT ============
+
       if (downloadType === 'transcript') {
         endpoint = '/download_transcript/';
         payload = {
           youtube_id: id,
           clean_transcript: transcriptType === 'clean',
-          // Pass 'srt' or 'vtt' when user selected timestamped formats; otherwise null
-          format: transcriptType === 'unclean' ? uncleanFormat : null
+          format: transcriptType === 'unclean' ? uncleanFormat : null,
         };
       } else if (downloadType === 'audio') {
         endpoint = '/download_audio/';
@@ -272,22 +530,35 @@ export default function DownloadPage() {
       const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.detail || `${downloadType} download failed`);
+      const data = await res.json().catch(() => ({}));
+
+      // If backend says "use local helper", we do that and return early
+      if (res.ok && data && data.needs_local_helper) {
+        toast('Using YCD Desktop Helper for this video (YouTube is blocking our servers).', {
+          icon: '🖥️',
+        });
+        await runWithHelper(data, beforeUsage);
+        return;
       }
 
-      const data = await res.json();
+      if (!res.ok) {
+        const message = data.detail || `${downloadType} download failed`;
+        throw new Error(message);
+      }
 
+      // Normal cloud-success path
       if (downloadType === 'transcript') {
         setResult(data.transcript || '');
         setDownloadCompleted(true);
         toast.success('📄 Transcript ready');
 
-        await pollUsageSync(beforeUsage, transcriptType === 'clean' ? 'clean_transcripts' : 'unclean_transcripts');
+        await pollUsageSync(
+          beforeUsage,
+          transcriptType === 'clean' ? 'clean_transcripts' : 'unclean_transcripts'
+        );
       } else {
         setDownloadUrl(data.direct_download_url || '');
         const meta = {
@@ -296,7 +567,7 @@ export default function DownloadPage() {
           duration: data.duration || 0,
           filename: data.filename,
           fileSize: data.file_size_mb,
-          youtubeId: data.youtube_id
+          youtubeId: data.youtube_id,
         };
         setVideoMetadata(meta);
         setDownloadCompleted(true);
@@ -327,11 +598,15 @@ export default function DownloadPage() {
           } catch {}
         }
 
-        await pollUsageSync(beforeUsage, downloadType === 'audio' ? 'audio_downloads' : 'video_downloads');
+        await pollUsageSync(
+          beforeUsage,
+          downloadType === 'audio' ? 'audio_downloads' : 'video_downloads'
+        );
       }
     } catch (err) {
-      setError(err.message || 'Operation failed');
-      toast.error(err.message || 'Operation failed');
+      const msg = err?.message || 'Operation failed';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
       try {
@@ -404,7 +679,9 @@ export default function DownloadPage() {
             const minutes = parseInt(m[2], 10);
             const seconds = parseInt(m[3], 10);
             const totalMinutes = hours * 60 + minutes;
-            current.timestamp = `[${totalMinutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}]`;
+            current.timestamp = `[${totalMinutes.toString().padStart(2, '0')}:${seconds
+              .toString()
+              .padStart(2, '0')}]`;
           }
           continue;
         }
@@ -507,8 +784,7 @@ export default function DownloadPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
-
-        {/* ============ Professional Brand Header (Top-Left) ============ */}
+        {/* Brand header */}
         <div className="mb-6">
           <AppBrand
             size={32}
@@ -519,7 +795,7 @@ export default function DownloadPage() {
           />
         </div>
 
-        {/* ============ Centered Page Header with Official YCD Logo ============ */}
+        {/* Center header */}
         <div className="text-center mb-6">
           <div className="flex justify-center items-center mb-4">
             <YcdLogo size={56} />
@@ -536,9 +812,13 @@ export default function DownloadPage() {
           >
             Logout
           </button>
-          {successMessage && <span className="sr-only" aria-live="polite">{successMessage}</span>}
+          {successMessage && (
+            <span className="sr-only" aria-live="polite">
+              {successMessage}
+            </span>
+          )}
 
-          {/* Usage Status Card */}
+          {/* Usage status card */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4 mt-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm">
@@ -595,14 +875,12 @@ export default function DownloadPage() {
               <div>🎬 Video: {safeFormatUsage('video_downloads')}</div>
             </div>
             {subscriptionStatus?.next_reset && (
-              <div className="mt-1 text-xs text-gray-500">
-                Resets {formatResetDate()}
-              </div>
+              <div className="mt-1 text-xs text-gray-500">Resets {formatResetDate()}</div>
             )}
           </div>
         </div>
 
-        {/* ============ Working Examples ============ */}
+        {/* Working examples */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 shadow-sm">
           <h3 className="text-green-800 font-semibold mb-2">✅ Try These Working Examples:</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -619,7 +897,7 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* ============ YouTube Input ============ */}
+        {/* YouTube input */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Enter YouTube Video ID or URL:
@@ -640,11 +918,13 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Download Type Selection ============ */}
+        {/* Download Type Selection */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <label
             className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              downloadType === 'transcript' ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+              downloadType === 'transcript'
+                ? 'border-blue-500 bg-blue-50 shadow-sm'
+                : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             <input
@@ -660,7 +940,9 @@ export default function DownloadPage() {
 
           <label
             className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              downloadType === 'audio' ? 'border-green-500 bg-green-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+              downloadType === 'audio'
+                ? 'border-green-500 bg-green-50 shadow-sm'
+                : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             <input
@@ -676,7 +958,9 @@ export default function DownloadPage() {
 
           <label
             className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              downloadType === 'video' ? 'border-purple-500 bg-purple-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+              downloadType === 'video'
+                ? 'border-purple-500 bg-purple-50 shadow-sm'
+                : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             <input
@@ -691,12 +975,14 @@ export default function DownloadPage() {
           </label>
         </div>
 
-        {/* ============ Transcript Options ============ */}
+        {/* Transcript Options */}
         {downloadType === 'transcript' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <label
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                transcriptType === 'clean' ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+                transcriptType === 'clean'
+                  ? 'border-blue-500 bg-blue-50 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300'
               }`}
             >
               <input
@@ -708,12 +994,16 @@ export default function DownloadPage() {
               />
               <div className="font-bold text-gray-900">📄 Clean Format</div>
               <div className="text-sm text-gray-600">Text only (no timestamps)</div>
-              <div className="text-xs text-blue-600 mt-1">Usage: {safeFormatUsage('clean_transcripts')}</div>
+              <div className="text-xs text-blue-600 mt-1">
+                Usage: {safeFormatUsage('clean_transcripts')}
+              </div>
             </label>
 
             <label
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                transcriptType === 'unclean' ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+                transcriptType === 'unclean'
+                  ? 'border-blue-500 bg-blue-50 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300'
               }`}
             >
               <input
@@ -725,18 +1015,22 @@ export default function DownloadPage() {
               />
               <div className="font-bold text-gray-900">🕒 Timestamped Format</div>
               <div className="text-sm text-gray-600 mb-2">With timestamps</div>
-              <div className="text-xs text-blue-600 mb-2">Usage: {safeFormatUsage('unclean_transcripts')}</div>
+              <div className="text-xs text-blue-600 mb-2">
+                Usage: {safeFormatUsage('unclean_transcripts')}
+              </div>
 
               {transcriptType === 'unclean' && (
                 <div
                   className={`pl-4 mt-2 space-y-2 border-l-2 border-blue-200 ${
-                    atLimit('unclean_transcripts') ? 'opacity-50' : ''
+                    timestampedAtLimit ? 'opacity-50' : ''
                   }`}
                 >
                   {['srt', 'vtt'].map((fmt) => (
                     <label
                       key={fmt}
-                      className={`flex items-center ${atLimit('unclean_transcripts') ? 'cursor-not-allowed' : ''}`}
+                      className={`flex items-center ${
+                        timestampedAtLimit ? 'cursor-not-allowed' : ''
+                      }`}
                     >
                       <input
                         type="radio"
@@ -745,7 +1039,7 @@ export default function DownloadPage() {
                         checked={uncleanFormat === fmt}
                         onChange={() => setUncleanFormat(fmt)}
                         className="mr-2"
-                        disabled={atLimit('unclean_transcripts')}
+                        disabled={timestampedAtLimit}
                       />
                       <span className="text-red-600 font-medium">{fmt.toUpperCase()} Format</span>
                     </label>
@@ -756,11 +1050,11 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Audio Quality ============ */}
+        {/* Audio Quality */}
         {downloadType === 'audio' && (
           <div
             className={`bg-green-50 border border-green-200 rounded-lg p-4 mb-6 shadow-sm ${
-              atLimit('audio_downloads') ? 'opacity-50 pointer-events-none' : ''
+              audioAtLimit ? 'opacity-50 pointer-events-none' : ''
             }`}
           >
             <SegmentedRadioGroup
@@ -773,7 +1067,7 @@ export default function DownloadPage() {
               ]}
               value={audioQuality}
               onChange={setAudioQuality}
-              disabled={atLimit('audio_downloads')}
+              disabled={audioAtLimit}
               columns={3}
               variant="green"
               className="text-center"
@@ -784,11 +1078,11 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Video Quality ============ */}
+        {/* Video Quality */}
         {downloadType === 'video' && (
           <div
             className={`bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 shadow-sm ${
-              atLimit('video_downloads') ? 'opacity-50 pointer-events-none' : ''
+              videoAtLimit ? 'opacity-50 pointer-events-none' : ''
             }`}
           >
             <SegmentedRadioGroup
@@ -802,7 +1096,7 @@ export default function DownloadPage() {
               ]}
               value={videoQuality}
               onChange={setVideoQuality}
-              disabled={atLimit('video_downloads')}
+              disabled={videoAtLimit}
               columns={4}
               variant="purple"
               className="text-center"
@@ -813,7 +1107,7 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Error Messages ============ */}
+        {/* Errors / usage limit messages */}
         {getUsageLimitMessage() && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4 shadow-sm">
             ⚠️ {getUsageLimitMessage()}
@@ -826,7 +1120,7 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Action Buttons ============ */}
+        {/* Action buttons */}
         <div className="flex gap-4 mb-6">
           <button
             onClick={handleDownload}
@@ -863,7 +1157,7 @@ export default function DownloadPage() {
           </button>
         </div>
 
-        {/* ============ Results Display ============ */}
+        {/* Results */}
         {(result || downloadUrl) && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 flex items-center">
@@ -898,7 +1192,7 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Navigation Buttons ============ */}
+        {/* Navigation */}
         <div className="text-center mb-6">
           <div className="flex gap-4 justify-center flex-wrap">
             <button
@@ -922,14 +1216,16 @@ export default function DownloadPage() {
 
 //==============End Download Module================
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 // // frontend/src/pages/Download.js — Production-ready (limits-aware + next_reset + robust usage sync)
 // // - FIXED: Renamed "Unclean" to "Timestamped" for professional appearance
-// // - Displays next reset date ("Resets Nov 1")
+// // - Displays next reset date to collapse to zero according to upgrated date 
 // // - Disables actions when limits are reached (computed locally from subscriptionStatus)
 // // - Refreshes + short-polls subscription after successful operations to keep Dashboard in sync
 // // - Polished UI with segmented controls, mobile handling, auto-start download
+// // - VERIFIED: Correct API payload format for transcript downloads (clean_transcript + format)
 
 // import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 // import { useNavigate } from 'react-router-dom';
@@ -1169,11 +1465,14 @@ export default function DownloadPage() {
 //       if (!id || id.length !== 11) throw new Error('Please enter a valid YouTube video ID or URL');
 
 //       let endpoint, payload;
+      
+//       // ============ VERIFIED API PAYLOAD FORMAT ============
 //       if (downloadType === 'transcript') {
 //         endpoint = '/download_transcript/';
 //         payload = {
 //           youtube_id: id,
 //           clean_transcript: transcriptType === 'clean',
+//           // Pass 'srt' or 'vtt' when user selected timestamped formats; otherwise null
 //           format: transcriptType === 'unclean' ? uncleanFormat : null
 //         };
 //       } else if (downloadType === 'audio') {
@@ -1843,3 +2142,4 @@ export default function DownloadPage() {
 // }
 
 // //==============End Download Module================
+
