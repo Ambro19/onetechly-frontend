@@ -604,6 +604,7 @@ export default function DownloadPage() {
         );
       }
     } catch (err) {
+      console.error('Download error', err); // 👈 add this line
       const msg = err?.message || 'Operation failed';
       setError(msg);
       toast.error(msg);
