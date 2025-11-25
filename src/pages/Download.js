@@ -1,21 +1,29 @@
 // frontend/src/pages/Download.js — Production-ready (limits-aware + helper integration)
 // - Still shows subscription limits, next_reset, and handles cloud-only success
-// - NEW: If backend responds with needs_local_helper, it will:
+// - If backend responds with needs_local_helper, it will:
 //     1) Call the YCD Desktop Helper running on the user's machine
 //     2) After success, call /helper/report_usage to keep usage/history in sync
-// - YCD Desktop Helper API (expected):
-//     POST http://127.0.0.1:17682/ycd-helper/run
-//     Body: {
-//       type: "transcript" | "audio" | "video",
-//       video_id: "XXXXXXXXXXX",
-//       clean_transcript?: boolean,
-//       format?: "srt" | "vtt" | null,
-//       quality?: "high"|"medium"|"low"|"720p"|...,
-//     }
-//     Response (transcript example):
-//       { ok: true, type: "transcript", transcript: "...", format: "txt"|"srt"|"vtt", file_size: 12345 }
-//     Response (audio/video example):
-//       { ok: true, type: "audio"|"video", download_url: "/files/...", filename: "...", file_size: 123, file_size_mb: 1.2, title, uploader, duration }
+// - NEW: Smarter error handling:
+//     - When we detect typical "YouTube blocked/captions issue" messages,
+//       we show a "Use Desktop Helper" call-to-action and let the user retry via helper.
+//
+// Expected YCD Desktop Helper API:
+//
+//   POST http://127.0.0.1:17682/ycd-helper/run
+//   Body: {
+//     type: "transcript" | "audio" | "video",
+//     video_id: "XXXXXXXXXXX",
+//     clean_transcript?: boolean,
+//     format?: "srt" | "vtt" | null,
+//     quality?: "high"|"medium"|"low"|"720p"|...,
+//   }
+//
+//   Response (transcript example):
+//     { ok: true, type: "transcript", transcript: "...", format: "txt"|"srt"|"vtt", file_size: 12345 }
+//
+//   Response (audio/video example):
+//     { ok: true, type: "audio"|"video", download_url: "/files/...", filename: "...", file_size: 123,
+//       file_size_mb: 1.2, title, uploader, duration }
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +50,35 @@ const isMobile = () =>
     (navigator.userAgent || '').toLowerCase()
   );
 
+// Heuristics to decide when we should suggest using the Desktop Helper
+function shouldSuggestHelper(message, currentDownloadType) {
+  if (!message) return false;
+
+  const m = message.toLowerCase();
+
+  const patterns = [
+    'does not have captions/transcripts',
+    'no captions or youtube blocked our requests',
+    'could not retrieve transcript',
+    'sign in to confirm you’re not a bot',
+    "sign in to confirm you're not a bot",
+    'bot detection',
+    'youtube blocked our servers',
+    'youtube blocked our requests',
+    'please try a different video', // your current 404 text
+  ];
+
+  // Right now most of the tricky failures are transcript-related, but we
+  // keep this generic in case you later decide to route audio/video via helper too.
+  const looksLikeBlocked = patterns.some((p) => m.includes(p));
+  if (!looksLikeBlocked) return false;
+
+  if (currentDownloadType === 'transcript') return true;
+
+  // Optional: extend for audio/video later if you want
+  return false;
+}
+
 export default function DownloadPage() {
   const navigate = useNavigate();
   const { token, user, isAuthenticated, logout } = useAuth();
@@ -65,6 +102,7 @@ export default function DownloadPage() {
   const [downloadCompleted, setDownloadCompleted] = useState(false);
   const [downloadStarted, setDownloadStarted] = useState(false);
   const [isRefreshingSubscription, setIsRefreshingSubscription] = useState(false);
+  const [showHelperHint, setShowHelperHint] = useState(false); // 🔹 NEW
 
   const autoTriggeredRef = useRef(false);
   const mobileToastShownRef = useRef(false);
@@ -77,7 +115,10 @@ export default function DownloadPage() {
   useEffect(() => {
     if (isMobile() && !mobileToastShownRef.current) {
       mobileToastShownRef.current = true;
-      toast.success('📱 Mobile device detected – downloads optimized!', { duration: 2200, id: 'mobile-ok' });
+      toast.success('📱 Mobile device detected – downloads optimized!', {
+        duration: 2200,
+        id: 'mobile-ok',
+      });
     }
   }, []);
 
@@ -86,6 +127,11 @@ export default function DownloadPage() {
       refreshSubscriptionStatus().catch(() => {});
     }
   }, [isAuthenticated, refreshSubscriptionStatus]);
+
+  // If user changes the video or type, hide any stale helper hint
+  useEffect(() => {
+    setShowHelperHint(false);
+  }, [youtubeInput, downloadType, transcriptType]);
 
   const extractVideoId = (input) => {
     const patterns = [
@@ -119,7 +165,8 @@ export default function DownloadPage() {
   };
 
   const actionKey = useMemo(() => {
-    if (downloadType === 'transcript') return transcriptType === 'clean' ? 'clean_transcripts' : 'unclean_transcripts';
+    if (downloadType === 'transcript')
+      return transcriptType === 'clean' ? 'clean_transcripts' : 'unclean_transcripts';
     if (downloadType === 'audio') return 'audio_downloads';
     if (downloadType === 'video') return 'video_downloads';
     return null;
@@ -160,7 +207,9 @@ export default function DownloadPage() {
 
   const updateMediaPlayerTitle = (data) => {
     try {
-      document.title = `${data.title || 'Unknown Title'} - ${data.uploader || 'Unknown Channel'}`;
+      document.title = `${data.title || 'Unknown Title'} - ${
+        data.uploader || 'Unknown Channel'
+      }`;
       if ('mediaSession' in navigator && 'MediaMetadata' in window) {
         navigator.mediaSession.metadata = new window.MediaMetadata({
           title: data.title || 'Unknown Title',
@@ -227,7 +276,7 @@ export default function DownloadPage() {
       }
       return false;
     },
-    [refreshSubscriptionStatus]
+    [refreshSubscriptionStatus] // getUsed reads latest usage
   );
 
   // Report usage to backend when helper completes a download
@@ -267,7 +316,8 @@ export default function DownloadPage() {
       const helperTask = helperEnvelope?.helper_task || {};
       const baseUsageType = helperEnvelope?.usage_type || actionKey;
 
-      const videoIdFromTask = helperTask.youtube_id || helperTask.video_id || extractVideoId(youtubeInput);
+      const videoIdFromTask =
+        helperTask.youtube_id || helperTask.video_id || extractVideoId(youtubeInput);
       const typeFromTask = helperTask.type || downloadType;
 
       if (!videoIdFromTask || videoIdFromTask.length !== 11) {
@@ -386,7 +436,9 @@ export default function DownloadPage() {
         const href =
           downloadUrlLocal.startsWith('http') || downloadUrlLocal.startsWith('https')
             ? downloadUrlLocal
-            : `${HELPER_BASE_URL}${downloadUrlLocal.startsWith('/') ? '' : '/'}${downloadUrlLocal}`;
+            : `${HELPER_BASE_URL}${
+                downloadUrlLocal.startsWith('/') ? '' : '/'
+              }${downloadUrlLocal}`;
 
         const meta = {
           title: helperData.title || 'Unknown Title',
@@ -441,7 +493,8 @@ export default function DownloadPage() {
         if (effectiveUsageType) {
           await pollUsageSync(
             beforeUsage,
-            effectiveUsageType === 'audio_downloads' || effectiveUsageType === 'video_downloads'
+            effectiveUsageType === 'audio_downloads' ||
+              effectiveUsageType === 'video_downloads'
               ? effectiveUsageType
               : typeFromTask === 'audio'
               ? 'audio_downloads'
@@ -467,6 +520,57 @@ export default function DownloadPage() {
     ]
   );
 
+  // 🔹 New: manual “Retry via Desktop Helper” handler (for smarter error flow)
+  const handleRetryViaHelper = useCallback(
+    async () => {
+      try {
+        const id = extractVideoId(youtubeInput);
+        if (!id || id.length !== 11) {
+          toast.error(
+            'Please enter a valid YouTube URL or ID before using the desktop helper.'
+          );
+          return;
+        }
+
+        setIsLoading(true);
+        setError('');
+        setResult('');
+        setDownloadUrl('');
+        setDownloadCompleted(false);
+        setDownloadStarted(false);
+        autoTriggeredRef.current = false;
+        pollStopRef.current = false;
+
+        const beforeUsage = {
+          clean_transcripts: Number(usage?.clean_transcripts ?? 0),
+          unclean_transcripts: Number(usage?.unclean_transcripts ?? 0),
+          audio_downloads: Number(usage?.audio_downloads ?? 0),
+          video_downloads: Number(usage?.video_downloads ?? 0),
+        };
+
+        await runWithHelper(
+          {
+            helper_task: {
+              youtube_id: id,
+              type: downloadType,
+            },
+            usage_type: actionKey,
+          },
+          beforeUsage
+        );
+        setShowHelperHint(false);
+      } catch (err) {
+        console.error('[YCD helper] retry via helper failed:', err);
+        const msg = err?.message || 'Desktop helper attempt failed.';
+        setError(msg);
+        toast.error(msg);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [youtubeInput, runWithHelper, downloadType, actionKey, usage]
+  );
+
   const handleTranscriptDownload = async () => {
     if (!result) return toast.error('No transcript available');
     try {
@@ -490,6 +594,7 @@ export default function DownloadPage() {
     try {
       setIsLoading(true);
       setError('');
+      setShowHelperHint(false); // reset helper hint on new attempt
       setResult('');
       setDownloadUrl('');
       setSuccessMessage('');
@@ -501,7 +606,8 @@ export default function DownloadPage() {
 
       const id = extractVideoId(youtubeInput);
       setVideoId(id);
-      if (!id || id.length !== 11) throw new Error('Please enter a valid YouTube video ID or URL');
+      if (!id || id.length !== 11)
+        throw new Error('Please enter a valid YouTube video ID or URL');
 
       let endpoint, payload;
 
@@ -535,8 +641,17 @@ export default function DownloadPage() {
 
       const data = await res.json().catch(() => ({}));
 
-      // If backend says "use local helper", we do that and return early
+      // If backend says "use local helper" in a success response, we do that and return early
       if (res.ok && data && data.needs_local_helper) {
+        toast('Using YCD Desktop Helper for this video (YouTube is blocking our servers).', {
+          icon: '🖥️',
+        });
+        await runWithHelper(data, beforeUsage);
+        return;
+      }
+
+      // If backend chose to signal helper use on an error status, honor it too
+      if (!res.ok && data && data.needs_local_helper) {
         toast('Using YCD Desktop Helper for this video (YouTube is blocking our servers).', {
           icon: '🖥️',
         });
@@ -604,10 +719,17 @@ export default function DownloadPage() {
         );
       }
     } catch (err) {
-      console.error('Download error', err); // 👈 add this line
+      console.error('Download error', err);
       const msg = err?.message || 'Operation failed';
       setError(msg);
       toast.error(msg);
+
+      // 🔹 Decide whether to surface the Desktop Helper hint
+      if (!isMobile() && shouldSuggestHelper(msg, downloadType)) {
+        setShowHelperHint(true);
+      } else {
+        setShowHelperHint(false);
+      }
     } finally {
       setIsLoading(false);
       try {
@@ -641,7 +763,11 @@ export default function DownloadPage() {
         <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg overflow-auto max-h-96 text-sm font-mono">
           <div className="mb-2 text-blue-600 font-semibold">🎬 WEBVTT Format</div>
           {lines.map((line, idx) => {
-            if (line.startsWith('WEBVTT') || line.startsWith('Kind:') || line.startsWith('Language:')) {
+            if (
+              line.startsWith('WEBVTT') ||
+              line.startsWith('Kind:') ||
+              line.startsWith('Language:')
+            ) {
               return (
                 <div key={idx} className="text-purple-600 font-semibold">
                   {line}
@@ -749,7 +875,8 @@ export default function DownloadPage() {
             {downloadType === 'audio' ? 'Audio' : 'Video'} Ready
           </div>
           <div className="text-sm text-gray-600 mb-4">
-            Quality: {downloadType === 'audio' ? audioQuality : videoQuality} • Video ID: {videoId}
+            Quality: {downloadType === 'audio' ? audioQuality : videoQuality} • Video ID:{' '}
+            {videoId}
           </div>
           {downloadCompleted && statusPill}
         </div>
@@ -805,7 +932,10 @@ export default function DownloadPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">📺 Download YouTube Content</h1>
           <div className="text-sm text-gray-600 mb-2">
             Logged in as{' '}
-            <span className="font-semibold text-blue-600">{user?.username || 'User'}</span> ({user?.email})
+            <span className="font-semibold text-blue-600">
+              {user?.username || 'User'}
+            </span>{' '}
+            ({user?.email})
           </div>
           <button
             onClick={handleLogout}
@@ -853,7 +983,9 @@ export default function DownloadPage() {
                 title="Refresh subscription status"
               >
                 <svg
-                  className={`w-3 h-3 mr-1 ${isRefreshingSubscription ? 'animate-spin' : ''}`}
+                  className={`w-3 h-3 mr-1 ${
+                    isRefreshingSubscription ? 'animate-spin' : ''
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -886,7 +1018,9 @@ export default function DownloadPage() {
           <h3 className="text-green-800 font-semibold mb-2">✅ Try These Working Examples:</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <div className="font-medium text-green-700">Rick Astley - Never Gonna Give You Up</div>
+              <div className="font-medium text-green-700">
+                Rick Astley - Never Gonna Give You Up
+              </div>
               <div className="text-green-600">🎵🎬 Perfect for testing ALL features</div>
               <div className="text-xs text-green-500 font-mono">dQw4w9WgXcQ</div>
             </div>
@@ -1042,7 +1176,9 @@ export default function DownloadPage() {
                         className="mr-2"
                         disabled={timestampedAtLimit}
                       />
-                      <span className="text-red-600 font-medium">{fmt.toUpperCase()} Format</span>
+                      <span className="text-red-600 font-medium">
+                        {fmt.toUpperCase()} Format
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -1116,8 +1252,35 @@ export default function DownloadPage() {
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4 shadow-sm">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-2 shadow-sm">
             ⚠️ {error}
+          </div>
+        )}
+
+        {/* 🔹 Helper hint / CTA */}
+        {showHelperHint && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-4 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="text-sm">
+                <div className="font-semibold mb-1">Having trouble with this video?</div>
+                <div>
+                  This looks like YouTube is blocking our cloud servers or hiding captions.
+                  You can try again using{' '}
+                  <span className="font-semibold">YCD Desktop Helper</span>, which downloads via
+                  your own connection.
+                </div>
+                <div className="text-xs mt-1">
+                  Make sure the helper app is installed and running on this computer.
+                </div>
+              </div>
+              <button
+                onClick={handleRetryViaHelper}
+                disabled={isLoading}
+                className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-yellow-600 text-white text-sm font-medium hover:bg-yellow-700 disabled:opacity-60 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+              >
+                🖥 Retry via Desktop Helper
+              </button>
+            </div>
           </div>
         )}
 
@@ -1149,6 +1312,7 @@ export default function DownloadPage() {
               setVideoMetadata(null);
               setDownloadCompleted(false);
               setDownloadStarted(false);
+              setShowHelperHint(false);
               autoTriggeredRef.current = false;
               pollStopRef.current = true;
             }}
@@ -1168,7 +1332,9 @@ export default function DownloadPage() {
                 ? '🎵 Audio Result'
                 : '🎬 Video Result'}
               {downloadType !== 'transcript' && downloadStarted && (
-                <span className="ml-2 text-green-600 text-sm font-normal">✅ Download Complete</span>
+                <span className="ml-2 text-green-600 text-sm font-normal">
+                  ✅ Download Complete
+                </span>
               )}
             </h2>
 
@@ -1216,6 +1382,7 @@ export default function DownloadPage() {
 }
 
 //==============End Download Module================
+
 
 
 
