@@ -1,29 +1,28 @@
-// frontend/src/pages/Download.js — Production-ready (limits-aware + helper integration)
-// - Still shows subscription limits, next_reset, and handles cloud-only success
-// - If backend responds with needs_local_helper, it will:
-//     1) Call the YCD Desktop Helper running on the user's machine
-//     2) After success, call /helper/report_usage to keep usage/history in sync
-// - NEW: Smarter error handling:
-//     - When we detect typical "YouTube blocked/captions issue" messages,
-//       we show a "Use Desktop Helper" call-to-action and let the user retry via helper.
+// frontend/src/pages/Download.js — Cloud + automatic Desktop Helper (transcripts only)
 //
-// Expected YCD Desktop Helper API:
-//
-//   POST http://127.0.0.1:17682/ycd-helper/run
+// - Uses normal API for all operations by default
+// - When YouTube blocks transcripts (typical error text) it shows a
+//   yellow “Use Desktop Helper” CTA
+// - The CTA calls a local HTTP server exposed by the YCD Desktop Helper:
+//       POST http://127.0.0.1:17682/ycd-helper/run
 //   Body: {
-//     type: "transcript" | "audio" | "video",
+//     type: "transcript",
 //     video_id: "XXXXXXXXXXX",
-//     clean_transcript?: boolean,
-//     format?: "srt" | "vtt" | null,
-//     quality?: "high"|"medium"|"low"|"720p"|...,
+//     clean_transcript: boolean,
+//     format: "srt" | "vtt" | null
+//   }
+//   Response: {
+//     ok: true,
+//     type: "transcript",
+//     transcript: "...",
+//     format: "txt" | "srt" | "vtt",
+//     file_size: number,
+//     processing_time?: number
 //   }
 //
-//   Response (transcript example):
-//     { ok: true, type: "transcript", transcript: "...", format: "txt"|"srt"|"vtt", file_size: 12345 }
-//
-//   Response (audio/video example):
-//     { ok: true, type: "audio"|"video", download_url: "/files/...", filename: "...", file_size: 123,
-//       file_size_mb: 1.2, title, uploader, duration }
+// - After success we:
+//     • show transcript in the UI
+//     • optionally report usage to /helper/report_usage on your API
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +40,7 @@ const API_BASE_URL =
 
 const AUTO_START_DOWNLOAD = true;
 
-// Local helper (desktop app) base URL
+// Local helper HTTP server base URL
 const HELPER_BASE_URL =
   process.env.REACT_APP_YCD_HELPER_URL || 'http://127.0.0.1:17682';
 
@@ -50,12 +49,10 @@ const isMobile = () =>
     (navigator.userAgent || '').toLowerCase()
   );
 
-// Heuristics to decide when we should suggest using the Desktop Helper
+// Decide when to suggest Desktop Helper
 function shouldSuggestHelper(message, currentDownloadType) {
   if (!message) return false;
-
   const m = message.toLowerCase();
-
   const patterns = [
     'does not have captions/transcripts',
     'no captions or youtube blocked our requests',
@@ -65,18 +62,11 @@ function shouldSuggestHelper(message, currentDownloadType) {
     'bot detection',
     'youtube blocked our servers',
     'youtube blocked our requests',
-    'please try a different video', // your current 404 text
+    'please try a different video',
   ];
-
-  // Right now most of the tricky failures are transcript-related, but we
-  // keep this generic in case you later decide to route audio/video via helper too.
   const looksLikeBlocked = patterns.some((p) => m.includes(p));
   if (!looksLikeBlocked) return false;
-
-  if (currentDownloadType === 'transcript') return true;
-
-  // Optional: extend for audio/video later if you want
-  return false;
+  return currentDownloadType === 'transcript';
 }
 
 export default function DownloadPage() {
@@ -102,7 +92,7 @@ export default function DownloadPage() {
   const [downloadCompleted, setDownloadCompleted] = useState(false);
   const [downloadStarted, setDownloadStarted] = useState(false);
   const [isRefreshingSubscription, setIsRefreshingSubscription] = useState(false);
-  const [showHelperHint, setShowHelperHint] = useState(false); // 🔹 NEW
+  const [showHelperHint, setShowHelperHint] = useState(false);
 
   const autoTriggeredRef = useRef(false);
   const mobileToastShownRef = useRef(false);
@@ -128,7 +118,7 @@ export default function DownloadPage() {
     }
   }, [isAuthenticated, refreshSubscriptionStatus]);
 
-  // If user changes the video or type, hide any stale helper hint
+  // Hide stale helper hint when input/type changes
   useEffect(() => {
     setShowHelperHint(false);
   }, [youtubeInput, downloadType, transcriptType]);
@@ -270,16 +260,14 @@ export default function DownloadPage() {
         const currentUsed = getUsed(keyToObserve);
         const beforeUsed = Number(beforeUsageMap?.[keyToObserve] ?? 0);
 
-        if (currentUsed > beforeUsed) {
-          return true;
-        }
+        if (currentUsed > beforeUsed) return true;
       }
       return false;
     },
-    [refreshSubscriptionStatus] // getUsed reads latest usage
+    [refreshSubscriptionStatus]
   );
 
-  // Report usage to backend when helper completes a download
+  // Optional: report helper usage so history/limits stay correct
   const reportHelperUsage = useCallback(
     async ({ usageType, youtubeId, fileFormat, quality, fileSize, processingTime }) => {
       try {
@@ -310,15 +298,18 @@ export default function DownloadPage() {
     [token]
   );
 
-  // Run download via local YCD Desktop Helper when backend returns needs_local_helper
+  // --- Core: run a transcript download via local helper HTTP server ---
   const runWithHelper = useCallback(
     async (helperEnvelope, beforeUsage) => {
+      if (downloadType !== 'transcript') {
+        throw new Error('Desktop helper currently only supports transcripts.');
+      }
+
       const helperTask = helperEnvelope?.helper_task || {};
       const baseUsageType = helperEnvelope?.usage_type || actionKey;
 
       const videoIdFromTask =
         helperTask.youtube_id || helperTask.video_id || extractVideoId(youtubeInput);
-      const typeFromTask = helperTask.type || downloadType;
 
       if (!videoIdFromTask || videoIdFromTask.length !== 11) {
         throw new Error('Desktop helper task is missing a valid YouTube video ID.');
@@ -326,33 +317,15 @@ export default function DownloadPage() {
 
       const effectiveUsageType =
         baseUsageType ||
-        (typeFromTask === 'transcript'
-          ? transcriptType === 'clean'
-            ? 'clean_transcripts'
-            : 'unclean_transcripts'
-          : typeFromTask === 'audio'
-          ? 'audio_downloads'
-          : typeFromTask === 'video'
-          ? 'video_downloads'
-          : null);
+        (transcriptType === 'clean' ? 'clean_transcripts' : 'unclean_transcripts');
 
       const payload = {
-        type: typeFromTask,
+        type: 'transcript',
         video_id: videoIdFromTask,
         clean_transcript:
-          typeFromTask === 'transcript'
-            ? helperTask.clean_transcript ?? (transcriptType === 'clean')
-            : undefined,
+          helperTask.clean_transcript ?? (transcriptType === 'clean'),
         format:
-          typeFromTask === 'transcript'
-            ? helperTask.format ?? (transcriptType === 'unclean' ? uncleanFormat : null)
-            : undefined,
-        quality:
-          typeFromTask === 'audio'
-            ? helperTask.quality ?? audioQuality
-            : typeFromTask === 'video'
-            ? helperTask.quality ?? videoQuality
-            : undefined,
+          helperTask.format ?? (transcriptType === 'unclean' ? uncleanFormat : null),
       };
 
       const helperUrl = `${HELPER_BASE_URL}/ycd-helper/run`;
@@ -361,9 +334,7 @@ export default function DownloadPage() {
       try {
         const res = await fetch(helperUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
 
@@ -385,191 +356,94 @@ export default function DownloadPage() {
         throw new Error('YCD Desktop Helper returned an empty response.');
       }
 
-      const okFlag =
-        helperData.ok === true ||
-        !!helperData.transcript ||
-        !!helperData.download_url ||
-        !!helperData.direct_download_url;
-
+      const okFlag = helperData.ok === true || !!helperData.transcript;
       if (!okFlag) {
-        throw new Error(helperData.error || 'YCD Desktop Helper failed to process this video.');
+        throw new Error(
+          helperData.error || 'YCD Desktop Helper failed to process this video.'
+        );
       }
 
-      // ----- Transcript via helper -----
-      if (typeFromTask === 'transcript') {
-        const text = helperData.transcript || '';
-        if (!text) {
-          throw new Error('YCD Desktop Helper did not return any transcript.');
-        }
+      const text = helperData.transcript || '';
+      if (!text) throw new Error('YCD Desktop Helper did not return any transcript.');
 
-        setVideoId(videoIdFromTask);
-        setResult(text);
-        setDownloadCompleted(true);
-        toast.success('📄 Transcript ready (via desktop helper)');
+      setVideoId(videoIdFromTask);
+      setResult(text);
+      setDownloadCompleted(true);
+      toast.success('📄 Transcript ready (via desktop helper)');
 
-        await reportHelperUsage({
-          usageType: effectiveUsageType,
-          youtubeId: videoIdFromTask,
-          fileFormat:
-            helperData.format ||
-            (payload.format || (payload.clean_transcript ? 'txt' : 'txt')),
-          quality: 'default',
-          fileSize: helperData.file_size || text.length,
-          processingTime: helperData.processing_time || 0,
-        });
+      await reportHelperUsage({
+        usageType: effectiveUsageType,
+        youtubeId: videoIdFromTask,
+        fileFormat:
+          helperData.format ||
+          (payload.format || (payload.clean_transcript ? 'txt' : 'txt')),
+        quality: 'default',
+        fileSize: helperData.file_size || text.length,
+        processingTime: helperData.processing_time || 0,
+      });
 
-        if (effectiveUsageType) {
-          await pollUsageSync(beforeUsage, effectiveUsageType);
-        }
-
-        return;
+      if (effectiveUsageType) {
+        await pollUsageSync(beforeUsage, effectiveUsageType);
       }
-
-      // ----- Audio / Video via helper -----
-      if (typeFromTask === 'audio' || typeFromTask === 'video') {
-        const downloadUrlLocal =
-          helperData.direct_download_url || helperData.download_url || '';
-        if (!downloadUrlLocal) {
-          throw new Error('YCD Desktop Helper did not provide a download URL.');
-        }
-
-        const href =
-          downloadUrlLocal.startsWith('http') || downloadUrlLocal.startsWith('https')
-            ? downloadUrlLocal
-            : `${HELPER_BASE_URL}${
-                downloadUrlLocal.startsWith('/') ? '' : '/'
-              }${downloadUrlLocal}`;
-
-        const meta = {
-          title: helperData.title || 'Unknown Title',
-          uploader: helperData.uploader || 'Unknown Channel',
-          duration: helperData.duration || 0,
-          filename: helperData.filename,
-          fileSize: helperData.file_size_mb,
-          youtubeId: videoIdFromTask,
-        };
-
-        setVideoId(videoIdFromTask);
-        setDownloadUrl(href);
-        setVideoMetadata(meta);
-        setDownloadCompleted(true);
-
-        if (typeFromTask === 'audio') {
-          updateMediaPlayerTitle(helperData);
-        }
-
-        if (AUTO_START_DOWNLOAD && href && !autoTriggeredRef.current) {
-          autoTriggeredRef.current = true;
-          try {
-            if (isMobile()) {
-              window.open(href, '_blank', 'noopener');
-            } else {
-              const a = document.createElement('a');
-              a.href = href;
-              a.download = meta.filename || '';
-              a.rel = 'noopener';
-              a.target = '_self';
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-            }
-            setDownloadStarted(true);
-            setSuccessMessage('Successfully Downloaded');
-            toast.success('💾 File download started (via desktop helper)');
-          } catch (err) {
-            console.error('[YCD helper] auto-start download failed:', err);
-          }
-        }
-
-        await reportHelperUsage({
-          usageType: effectiveUsageType,
-          youtubeId: videoIdFromTask,
-          fileFormat: typeFromTask === 'audio' ? 'mp3' : 'mp4',
-          quality: payload.quality,
-          fileSize: helperData.file_size || 0,
-          processingTime: helperData.processing_time || 0,
-        });
-
-        if (effectiveUsageType) {
-          await pollUsageSync(
-            beforeUsage,
-            effectiveUsageType === 'audio_downloads' ||
-              effectiveUsageType === 'video_downloads'
-              ? effectiveUsageType
-              : typeFromTask === 'audio'
-              ? 'audio_downloads'
-              : 'video_downloads'
-          );
-        }
-
-        return;
-      }
-
-      throw new Error('Unsupported helper task type.');
     },
     [
       actionKey,
-      audioQuality,
       downloadType,
       pollUsageSync,
       reportHelperUsage,
       transcriptType,
       uncleanFormat,
-      videoQuality,
       youtubeInput,
     ]
   );
 
-  // 🔹 New: manual “Retry via Desktop Helper” handler (for smarter error flow)
-  const handleRetryViaHelper = useCallback(
-    async () => {
-      try {
-        const id = extractVideoId(youtubeInput);
-        if (!id || id.length !== 11) {
-          toast.error(
-            'Please enter a valid YouTube URL or ID before using the desktop helper.'
-          );
-          return;
-        }
-
-        setIsLoading(true);
-        setError('');
-        setResult('');
-        setDownloadUrl('');
-        setDownloadCompleted(false);
-        setDownloadStarted(false);
-        autoTriggeredRef.current = false;
-        pollStopRef.current = false;
-
-        const beforeUsage = {
-          clean_transcripts: Number(usage?.clean_transcripts ?? 0),
-          unclean_transcripts: Number(usage?.unclean_transcripts ?? 0),
-          audio_downloads: Number(usage?.audio_downloads ?? 0),
-          video_downloads: Number(usage?.video_downloads ?? 0),
-        };
-
-        await runWithHelper(
-          {
-            helper_task: {
-              youtube_id: id,
-              type: downloadType,
-            },
-            usage_type: actionKey,
-          },
-          beforeUsage
-        );
-        setShowHelperHint(false);
-      } catch (err) {
-        console.error('[YCD helper] retry via helper failed:', err);
-        const msg = err?.message || 'Desktop helper attempt failed.';
-        setError(msg);
-        toast.error(msg);
-      } finally {
-        setIsLoading(false);
+  // CTA: “Retry via Desktop Helper” → actually call runWithHelper
+  const handleRetryViaHelper = useCallback(async () => {
+    try {
+      const id = extractVideoId(youtubeInput);
+      if (!id || id.length !== 11) {
+        toast.error('Please enter a valid YouTube URL or ID before using the desktop helper.');
+        return;
       }
-    },
-    [youtubeInput, runWithHelper, downloadType, actionKey, usage]
-  );
+
+      setIsLoading(true);
+      setError('');
+      setResult('');
+      setDownloadUrl('');
+      setDownloadCompleted(false);
+      setDownloadStarted(false);
+      autoTriggeredRef.current = false;
+      pollStopRef.current = false;
+
+      const beforeUsage = {
+        clean_transcripts: Number(usage?.clean_transcripts ?? 0),
+        unclean_transcripts: Number(usage?.unclean_transcripts ?? 0),
+        audio_downloads: Number(usage?.audio_downloads ?? 0),
+        video_downloads: Number(usage?.video_downloads ?? 0),
+      };
+
+      await runWithHelper(
+        {
+          helper_task: {
+            youtube_id: id,
+            type: 'transcript',
+            clean_transcript: transcriptType === 'clean',
+            format: transcriptType === 'unclean' ? uncleanFormat : null,
+          },
+          usage_type: actionKey,
+        },
+        beforeUsage
+      );
+      setShowHelperHint(false);
+    } catch (err) {
+      console.error('[YCD helper] retry via helper failed:', err);
+      const msg = err?.message || 'Desktop helper attempt failed.';
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [youtubeInput, runWithHelper, actionKey, transcriptType, uncleanFormat, usage]);
 
   const handleTranscriptDownload = async () => {
     if (!result) return toast.error('No transcript available');
@@ -594,7 +468,7 @@ export default function DownloadPage() {
     try {
       setIsLoading(true);
       setError('');
-      setShowHelperHint(false); // reset helper hint on new attempt
+      setShowHelperHint(false);
       setResult('');
       setDownloadUrl('');
       setSuccessMessage('');
@@ -641,17 +515,8 @@ export default function DownloadPage() {
 
       const data = await res.json().catch(() => ({}));
 
-      // If backend says "use local helper" in a success response, we do that and return early
-      if (res.ok && data && data.needs_local_helper) {
-        toast('Using YCD Desktop Helper for this video (YouTube is blocking our servers).', {
-          icon: '🖥️',
-        });
-        await runWithHelper(data, beforeUsage);
-        return;
-      }
-
-      // If backend chose to signal helper use on an error status, honor it too
-      if (!res.ok && data && data.needs_local_helper) {
+      // If backend explicitly says "use helper", honor that
+      if (downloadType === 'transcript' && data && data.needs_local_helper) {
         toast('Using YCD Desktop Helper for this video (YouTube is blocking our servers).', {
           icon: '🖥️',
         });
@@ -724,7 +589,6 @@ export default function DownloadPage() {
       setError(msg);
       toast.error(msg);
 
-      // 🔹 Decide whether to surface the Desktop Helper hint
       if (!isMobile() && shouldSuggestHelper(msg, downloadType)) {
         setShowHelperHint(true);
       } else {
@@ -737,6 +601,8 @@ export default function DownloadPage() {
       } catch {}
     }
   };
+
+  // ----------- (UI rendering code below is unchanged from previous version) -----------
 
   const renderTranscript = () => {
     if (!result || downloadType !== 'transcript') return null;
@@ -929,12 +795,12 @@ export default function DownloadPage() {
             <YcdLogo size={56} />
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">📺 Download YouTube Content</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            📺 Download YouTube Content
+          </h1>
           <div className="text-sm text-gray-600 mb-2">
             Logged in as{' '}
-            <span className="font-semibold text-blue-600">
-              {user?.username || 'User'}
-            </span>{' '}
+            <span className="font-semibold text-blue-600">{user?.username || 'User'}</span>{' '}
             ({user?.email})
           </div>
           <button
@@ -1015,7 +881,9 @@ export default function DownloadPage() {
 
         {/* Working examples */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 shadow-sm">
-          <h3 className="text-green-800 font-semibold mb-2">✅ Try These Working Examples:</h3>
+          <h3 className="text-green-800 font-semibold mb-2">
+            ✅ Try These Working Examples:
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <div className="font-medium text-green-700">
@@ -1257,7 +1125,7 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* 🔹 Helper hint / CTA */}
+        {/* Helper hint / CTA */}
         {showHelperHint && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg mb-4 shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -1381,11 +1249,10 @@ export default function DownloadPage() {
   );
 }
 
+
 //==============End Download Module================
 
-
-
-
+//IMPORTANT: KEEP THIS DO. FOR THE NORMAL IMPLEMENTATION (NOT THE YCD DESKTOP HELPER)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // // frontend/src/pages/Download.js — Production-ready (limits-aware + next_reset + robust usage sync)
 // // - FIXED: Renamed "Unclean" to "Timestamped" for professional appearance
