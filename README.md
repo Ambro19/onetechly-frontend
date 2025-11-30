@@ -1,63 +1,74 @@
-<!-- # 🎬 YouTube Content Downloader (YCD) — by OneTechly
+# 🎬 YouTube Content Downloader (YCD) — by OneTechly
 
-**OneTechly** builds cloud-native SaaS solutions that simplify how creators, developers, and businesses manage content. **YouTube Content Downloader (YCD)** is a sleek, mobile-ready application that lets users extract clean YouTube transcripts, MP3 audio, or full video downloads — all within a secure, scalable, and subscription-enabled platform.
+**OneTechly** builds cloud-native SaaS solutions that help creators, developers, and businesses manage video content efficiently and securely.
+
+**YouTube Content Downloader (YCD)** is a production-grade web application that enables users to:
+- Extract **clean transcripts** (text & timestamped)
+- Convert videos to **MP3 audio** with metadata
+- Download **full videos** in multiple qualities
+
+All wrapped with JWT authentication, Stripe subscriptions, usage tracking, and enterprise-grade security.
 
 🌐 **Live App:** [https://onetechly.com/ycd](https://onetechly.com/ycd)  
-🏢 **Company:** [https://onetechly.com](https://onetechly.com)
+🏢 **Company:** [https://onetechly.com](https://onetechly.com)  
+📚 **API Docs:** [https://api.onetechly.com/docs](https://api.onetechly.com/docs)
 
 ---
 
 ## 🚀 Overview
 
-YCD provides a full-stack SaaS experience:
+YCD provides a complete SaaS experience with professional-grade infrastructure:
 
-- **Frontend:** React + Tailwind (modern, responsive UI)
-- **Backend:** FastAPI (Python) with SQLAlchemy ORM
-- **Payments:** Stripe integration with webhooks
-- **Deployment:** Render cloud platform
+- **Frontend:** React 18 + Tailwind CSS (responsive, mobile-first design)
+- **Backend:** FastAPI (Python) + SQLAlchemy ORM
+- **Payments:** Stripe integration with webhooks and subscription management
+- **Deployment:** Render cloud platform (automatic scaling)
 - **Database:** PostgreSQL (production) / SQLite (development)
-- **Security:** JWT authentication, HTTPS, CSP/HSTS headers, and strict CORS
-
-It's designed for simplicity, elegance, and reliability — with the same polish and professionalism you expect from a production-grade SaaS.
+- **Security:** JWT authentication, CSP/HSTS headers, strict CORS policies
+- **YouTube Access:** Mobile proxy + cookie rotation for reliable content extraction
 
 ---
 
 ## ✨ Features
 
 | Category | Description |
-|-----------|-------------|
-| 🧠 **Transcripts** | Clean and timestamped YouTube transcripts in multiple formats |
-| 🎧 **Audio** | Convert videos to MP3 audio seamlessly |
-| 🎥 **Video** | Download full YouTube videos |
-| 🧾 **Subscriptions** | Stripe-powered Pro & Premium plans |
-| 🔒 **Authentication** | Secure JWT-based login system |
-| 📱 **Mobile-Ready** | Fully responsive and optimized for all screen sizes |
-| 📊 **Dashboard** | Real-time usage tracking, batch jobs, and history logs |
-| ☁️ **Scalable** | Cloud-native deployment, automatically managed by Render |
-| 🔐 **Production Security** | CSP, HSTS, and strict CORS policies enabled |
+|----------|-------------|
+| 🧠 **Transcripts** | Clean and timestamped YouTube transcripts in TXT, SRT, VTT formats |
+| 🎧 **Audio Downloads** | High-quality MP3 extraction with embedded metadata and cover art |
+| 🎥 **Video Downloads** | Multi-quality MP4 downloads (360p, 720p, 1080p, 4K) |
+| 🧾 **Subscriptions** | Stripe-powered tiered plans (Free, Pro, Premium) with usage limits |
+| 🔒 **Authentication** | Secure JWT-based login with password reset via SendGrid |
+| 📱 **Mobile-Optimized** | Fully responsive UI tested across iOS, Android, and desktop |
+| 📊 **User Dashboard** | Real-time usage tracking, download history, and batch job management |
+| ⚡ **Batch Processing** | Queue multiple downloads with Pro/Premium tier concurrency |
+| ☁️ **Cloud-Native** | Auto-scaling deployment with zero-downtime updates |
+| 🛡️ **Production Security** | CSP headers, HSTS enforcement, rate limiting, and input validation |
+| 🌐 **Bot Detection Bypass** | DECODO mobile proxy + automated cookie rotation for 95%+ success rate |
 
 ---
 
 ## 🖼️ Screenshots
 
-### 🌐 OneTechly Homepage
-*Professional SaaS landing with modern UI components.*
+> **Note:** Images use absolute GitHub URLs for consistent display across all platforms and devices.
 
-![OneTechly Homepage](public/readme-assets/onetechly-home.png)
+### 🌐 OneTechly Homepage
+*Professional SaaS landing page with modern UI components and clear value proposition.*
+
+![OneTechly Homepage](https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/onetechly-home.png)
 
 ---
 
 ### 🎯 Product Landing — YouTube Content Downloader
-*Clean, branded entry page for users to sign in or create an account.*
+*Clean, branded entry point for users to sign in or create a new account.*
 
-![YCD Landing Page](public/readme-assets/ycd-landing.png))
+![YCD Landing Page](https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/ycd-landing.png)
 
 ---
 
 ### 📊 Dashboard Page
-*Modern user dashboard with subscription insights and activity logs.*
+*Modern user dashboard with subscription status, usage analytics, and activity logs.*
 
-![YCD Dashboard](public/readme-assets/ycd-dashboard.png)
+![YCD Dashboard](https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/ycd-dashboard.png)
 
 ---
 
@@ -65,146 +76,312 @@ It's designed for simplicity, elegance, and reliability — with the same polish
 
 ### Prerequisites
 
-- **Node.js** (v16+)
-- **Python** (v3.9+)
-- **PostgreSQL** (for production) or SQLite (for development)
-- **Stripe Account** (for payment processing)
+- **Node.js** v16+ ([Download](https://nodejs.org/))
+- **Python** 3.9+ ([Download](https://www.python.org/downloads/))
+- **PostgreSQL** 14+ for production ([Download](https://www.postgresql.org/download/))
+- **Stripe Account** for payment processing ([Sign up](https://stripe.com))
+- **DECODO Account** for mobile proxy (optional but recommended) ([Sign up](https://decodo.io))
 
-### Frontend Setup
+---
+
+### 📱 Frontend Setup
 
 ```bash
+# Clone repository
 git clone https://github.com/Ambro19/onetechly-frontend.git
 cd onetechly-frontend
+
+# Install dependencies
 npm install
 ```
 
-Create a `.env` file in the frontend root:
+**Create `.env` file in frontend root:**
 
 ```env
+# API Configuration
 REACT_APP_API_URL=http://localhost:8000
+
+# Stripe (Test Keys)
 REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# Optional: Analytics
+REACT_APP_GA_TRACKING_ID=UA-XXXXXXXXX-X
 ```
 
-Start the development server:
+**Start development server:**
 
 ```bash
 npm start
 ```
 
-The frontend will run at `http://localhost:3000`
+**Frontend runs at:** `http://localhost:3000`
 
-### Backend Setup
+---
+
+### 🔧 Backend Setup
 
 ```bash
+# Clone repository
 git clone https://github.com/Ambro19/onetechly-backend.git
 cd onetechly-backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-Create a `.env` file in the backend root:
+**Create `.env` file in backend root:**
 
 ```env
-# Database
-DATABASE_URL=sqlite:///./ycd.db
+# ======================================
+# DATABASE CONFIGURATION
+# ======================================
+DATABASE_URL=sqlite:///./youtube_trans_downloader.db
 
-# JWT Authentication
-SECRET_KEY=your-secret-key-here
+# ======================================
+# JWT AUTHENTICATION
+# ======================================
+SECRET_KEY=your-secret-key-generate-with-secrets-token-urlsafe-64
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
-# Stripe (Test Keys)
+# ======================================
+# STRIPE CONFIGURATION (Test Mode)
+# ======================================
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRO_LOOKUP_KEY=pro_monthly
 STRIPE_PREMIUM_LOOKUP_KEY=premium_monthly
+STRIPE_PRO_PRODUCT_NAME=Pro Plan
+STRIPE_PREMIUM_PRODUCT_NAME=Premium Plan
 
-# Application
+# ======================================
+# YOUTUBE COOKIES (Base64 Encoded)
+# ======================================
+# Export cookies from Chrome using "Get cookies.txt LOCALLY" extension
+# Convert to base64: python -c "import base64; print(base64.b64encode(open('youtube.com_cookies.txt', 'rb').read()).decode())"
+YT_COOKIES_B64=<your_base64_encoded_cookies>
+
+# ======================================
+# DECODO MOBILE PROXY (Recommended)
+# ======================================
+# Enables 95%+ success rate by bypassing YouTube bot detection
+# Sign up at: https://decodo.io
+PROXY_ENABLED=true
+PROXY_HOST=gate.decodo.com
+PROXY_PORT=10001
+PROXY_USERNAME=your_decodo_username
+PROXY_PASSWORD=your_decodo_password
+
+# ======================================
+# EMAIL CONFIGURATION (SendGrid)
+# ======================================
+SENDGRID_API_KEY=SG.xxx
+CONTACT_FROM=no-reply@onetechly.com
+CONTACT_RECIPIENT=onetechly@gmail.com
+
+# ======================================
+# APPLICATION SETTINGS
+# ======================================
 ENVIRONMENT=development
 FRONTEND_URL=http://localhost:3000
 HOST=127.0.0.1
 PORT=8000
+
+# ======================================
+# BATCH PROCESSING LIMITS
+# ======================================
+BATCH_PRO_MAX_LINKS=3
+BATCH_PREMIUM_MAX_LINKS=1000
+BATCH_MAX_JOBS_PER_USER=5
+BATCH_MAX_CONCURRENCY_PRO=2
+BATCH_MAX_CONCURRENCY_PREMIUM=8
 ```
 
-Start the backend server:
+**Start backend server:**
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The backend API will run at `http://localhost:8000`
+**Backend API runs at:** `http://localhost:8000`
+
+**Interactive API documentation:** `http://localhost:8000/docs`
 
 ---
 
-## 🚀 Deployment
+## 🌐 YouTube Cookie Setup (Critical for Reliability)
 
-### Prerequisites on Render
+YouTube has aggressive bot detection. Fresh cookies are required for consistent downloads.
 
-1. **Create a Render account** at [render.com](https://render.com)
-2. **Set up PostgreSQL database** (see Database Setup below)
-3. **Connect your GitHub repositories** for automatic deployments
+### **Step 1: Install Chrome Extension**
 
-### Database Setup on Render
+Install: [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally)
 
-#### Creating a PostgreSQL Instance
+### **Step 2: Export YouTube Cookies**
 
-1. Log into [Render Dashboard](https://dashboard.render.com)
-2. Click **"New +"** → Select **"PostgreSQL"**
-3. Configure:
+1. **Go to** [youtube.com](https://youtube.com)
+2. **Login** to your Google account
+3. **Watch 2-3 videos** (establishes normal browsing behavior)
+4. **Click extension icon** → Select **Netscape format**
+5. **Click "Export"** → Saves `youtube.com_cookies.txt` to Downloads
+
+### **Step 3: Convert to Base64**
+
+```powershell
+# Windows PowerShell
+cd backend
+python -c "import base64; print(base64.b64encode(open('C:/Users/YOUR_USERNAME/Downloads/youtube.com_cookies.txt', 'rb').read()).decode(), end='')" > cookies_b64.txt
+
+# Copy to clipboard
+type cookies_b64.txt | clip
+
+# Verify size (should be ~3000-5000 characters)
+(Get-Content cookies_b64.txt).Length
+```
+
+```bash
+# macOS/Linux
+cd backend
+python3 -c "import base64; print(base64.b64encode(open('~/Downloads/youtube.com_cookies.txt', 'rb').read()).decode())" > cookies_b64.txt
+
+# Copy to clipboard
+cat cookies_b64.txt | pbcopy  # macOS
+cat cookies_b64.txt | xclip -selection clipboard  # Linux
+
+# Verify size
+wc -c cookies_b64.txt
+```
+
+### **Step 4: Add to Environment**
+
+**Local (.env file):**
+```env
+YT_COOKIES_B64=<paste_base64_string_here>
+```
+
+**Production (Render Dashboard):**
+1. Go to Service → Environment
+2. Find `YT_COOKIES_B64` variable
+3. Click Edit → Paste new value
+4. Save Changes (triggers auto-redeploy)
+
+### **🔄 Cookie Refresh Schedule**
+
+- **Recommended:** Refresh every 7-14 days
+- **Signs cookies expired:** "Sign in to confirm you're not a bot" errors
+- **Best practice:** Set calendar reminder to refresh bi-weekly
+
+---
+
+## 🚀 Production Deployment (Render)
+
+### Prerequisites
+
+1. **Render Account:** [Sign up](https://dashboard.render.com)
+2. **GitHub Repository:** Connect your repos
+3. **Stripe Account:** Live mode configured
+4. **DECODO Account:** Mobile proxy subscription (2GB plan recommended)
+
+---
+
+### 📊 PostgreSQL Database Setup
+
+#### **Create Database Instance**
+
+1. **Login to** [Render Dashboard](https://dashboard.render.com)
+2. **Click** "New +" → Select "PostgreSQL"
+3. **Configure:**
    - **Name:** `ycd-production-db`
-   - **Region:** Same as your backend service (for lower latency)
-   - **Plan:** Starter ($7/mo minimum for production)
-4. Click **"Create Database"**
-5. Copy the **Internal Database URL** from the Info tab
+   - **Region:** Same as backend service (lower latency)
+   - **Plan:** Starter ($7/month minimum for production)
+4. **Click** "Create Database"
+5. **Copy** Internal Database URL from Info tab
    - Format: `postgresql://user:password@host:5432/dbname`
 
-### Frontend Deployment
+---
 
-1. Create a new **Static Site** on Render
-2. Connect your frontend repository
-3. Configure build settings:
+### 🎨 Frontend Deployment
+
+#### **Create Static Site**
+
+1. **New +** → Select **"Static Site"**
+2. **Connect** GitHub repository: `onetechly-frontend`
+3. **Configure Build Settings:**
    - **Build Command:** `npm run build`
    - **Publish Directory:** `build`
-4. Add environment variables:
-   ```
-   REACT_APP_API_URL=https://your-backend.onrender.com
-   REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_...
-   ```
-5. Configure SPA rewrites (choose ONE method):
-   
-   **Option A: Using `_redirects` file (Recommended)**
-   - Create `public/_redirects` with content: `/*  /index.html  200`
-   - This file lives in version control
-   
-   **Option B: Render Dashboard**
-   - Navigate to Redirects/Rewrites settings
-   - Add rule: Source `/*`, Destination `/index.html`, Action `Rewrite`
+   - **Branch:** `main`
 
-   ⚠️ **Important:** Choose ONE method only. Do not configure rewrites in both places.
+#### **Environment Variables**
 
-### Backend Deployment
+```env
+REACT_APP_API_URL=https://your-backend-name.onrender.com
+REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_...
+```
 
-1. Create a new **Web Service** on Render
-2. Connect your backend repository
-3. Configure build settings:
+#### **Configure SPA Routing**
+
+**Option A: Using `_redirects` file (Recommended)**
+
+Create `public/_redirects` in your project:
+
+```
+/*  /index.html  200
+```
+
+This file is committed to version control and works automatically.
+
+**Option B: Render Dashboard**
+
+Navigate to: **Redirects/Rewrites** → Add Rule:
+- **Source:** `/*`
+- **Destination:** `/index.html`
+- **Action:** `Rewrite`
+
+⚠️ **Important:** Choose ONE method only. Do not configure in both places.
+
+---
+
+### ⚡ Backend Deployment
+
+#### **Create Web Service**
+
+1. **New +** → Select **"Web Service"**
+2. **Connect** GitHub repository: `onetechly-backend`
+3. **Configure Build Settings:**
    - **Build Command:** `pip install -r requirements.txt`
    - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
-4. Add production environment variables (see section below)
+   - **Branch:** `main`
 
-### Production Environment Variables
+#### **Production Environment Variables**
 
 Add these to your Render backend service:
 
 ```env
-# Database (from PostgreSQL instance)
+# ======================================
+# DATABASE (From PostgreSQL Instance)
+# ======================================
 DATABASE_URL=postgresql+psycopg2://user:password@host:5432/dbname
 
-# JWT Authentication
-SECRET_KEY=<generate-64-random-characters>
+# ======================================
+# JWT AUTHENTICATION
+# ======================================
+SECRET_KEY=<generate-with-python-secrets-token-urlsafe-64>
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
-# Stripe (LIVE keys for production)
+# ======================================
+# STRIPE (LIVE KEYS FOR PRODUCTION)
+# ======================================
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_PUBLISHABLE_KEY=pk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
@@ -213,155 +390,174 @@ STRIPE_PREMIUM_LOOKUP_KEY=premium_monthly
 STRIPE_PRO_PRODUCT_NAME=Pro Plan
 STRIPE_PREMIUM_PRODUCT_NAME=Premium Plan
 
-# Batch Policies
+# ======================================
+# YOUTUBE COOKIES (CRITICAL)
+# ======================================
+YT_COOKIES_B64=<base64_encoded_cookies_from_chrome>
+
+# ======================================
+# DECODO MOBILE PROXY (REQUIRED)
+# ======================================
+PROXY_ENABLED=true
+PROXY_HOST=gate.decodo.com
+PROXY_PORT=10001
+PROXY_USERNAME=<your_decodo_username>
+PROXY_PASSWORD=<your_decodo_password>
+
+# ======================================
+# EMAIL (SendGrid)
+# ======================================
+SENDGRID_API_KEY=SG.xxx
+CONTACT_FROM=no-reply@onetechly.com
+CONTACT_RECIPIENT=onetechly@gmail.com
+
+# ======================================
+# APPLICATION SETTINGS (CRITICAL)
+# ======================================
+ENVIRONMENT=production
+FRONTEND_URL=https://onetechly.com
+HOST=0.0.0.0
+PORT=8000
+
+# ======================================
+# BATCH PROCESSING
+# ======================================
 BATCH_PRO_MAX_LINKS=3
 BATCH_PREMIUM_MAX_LINKS=1000
 BATCH_MAX_JOBS_PER_USER=5
 BATCH_MAX_CONCURRENCY_PRO=2
 BATCH_MAX_CONCURRENCY_PREMIUM=8
 
-# Optional Integrations
+# ======================================
+# OPTIONAL INTEGRATIONS
+# ======================================
 ENABLE_WEBHOOKS=true
-ENABLE_S3_DELIVERY=true
-ENABLE_SLACK_ALERTS=true
-ENABLE_SSO=true
-
-# S3 Configuration (if using)
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=us-east-1
-S3_OUTPUT_BUCKET=
-S3_OUTPUT_PREFIX=batches/
-
-# Slack Alerts (if using)
-SLACK_WEBHOOK_URL=
-
-# Email (if using)
-SENDGRID_API_KEY=
-CONTACT_FROM=no-reply@onetechly.com
-CONTACT_RECIPIENT=onetechly@gmail.com
-
-# Application Settings (CRITICAL)
-ENVIRONMENT=production
-FRONTEND_URL=https://onetechly.com
-HOST=0.0.0.0
-PORT=8000
+ENABLE_S3_DELIVERY=false
+ENABLE_SLACK_ALERTS=false
 ```
 
-**🔐 Security Note:** Setting `ENVIRONMENT=production` automatically enables:
-- **CSP (Content Security Policy)** — Prevents XSS attacks
-- **HSTS (HTTP Strict Transport Security)** — Enforces HTTPS-only connections
-- **Strict CORS** — Blocks unauthorized cross-origin requests
+#### **🔐 Security: Production Environment**
 
-Only set `ENVIRONMENT=production` after:
+Setting `ENVIRONMENT=production` automatically enables:
+
+- **CSP (Content Security Policy)** — Prevents XSS attacks
+- **HSTS (HTTP Strict Transport Security)** — Enforces HTTPS-only
+- **Strict CORS** — Blocks unauthorized cross-origin requests
+- **Rate Limiting** — Protects against abuse
+
+Only set to `production` after:
 - ✅ SSL certificate is active
-- ✅ Domain is properly configured
+- ✅ Domain configured and working
 - ✅ All features tested on production domain
 
 ---
 
-## 🔐 Security Features
+## 🔧 Troubleshooting
 
-### Production Security Headers
+### Common Issues
 
-When `ENVIRONMENT=production`, the backend automatically enforces:
+#### **Issue: "Sign in to confirm you're not a bot" errors**
 
-#### CSP (Content Security Policy)
-Prevents malicious script injection by whitelisting allowed resource sources:
-```http
-Content-Security-Policy: default-src 'self'; script-src 'self' https://js.stripe.com
-```
+**Cause:** Expired YouTube cookies or IP blocked
 
-#### HSTS (HTTP Strict Transport Security)
-Forces browsers to only connect via HTTPS:
-```http
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-```
+**Solution:**
+1. Refresh cookies (see Cookie Setup section)
+2. Verify `PROXY_ENABLED=true` in environment
+3. Check DECODO proxy credentials are correct
+4. Wait 30 minutes if rate-limited
 
-#### Strict CORS
-Only allows API requests from your frontend domain:
-```python
-CORS_ORIGINS = ["https://onetechly.com"]
-```
+---
+
+#### **Issue: Blank page on `/app/download`**
+
+**Cause:** Frontend routing not configured
+
+**Solution:**
+1. Check `public/_redirects` exists with content: `/*  /index.html  200`
+2. Rebuild frontend: `npm run build`
+3. Clear browser cache (Ctrl+Shift+R)
+4. Check console for errors (F12 → Console)
+
+---
+
+#### **Issue: Audio/Video downloads fail with parse errors**
+
+**Cause:** YouTube bot detection or outdated yt-dlp
+
+**Solution:**
+1. Update yt-dlp: `pip install --upgrade yt-dlp` (latest: 2025.11.12)
+2. Verify proxy is active (check logs for "🌐 Using proxy" message)
+3. Try transcript download instead (more reliable)
+4. Test with different video ID
 
 ---
 
 ## 📚 API Documentation
 
 Once the backend is running, visit:
-- **Interactive API Docs:** `http://localhost:8000/docs`
-- **Alternative Docs:** `http://localhost:8000/redoc`
+
+- **Interactive Swagger UI:** `http://localhost:8000/docs`
+- **ReDoc Alternative:** `http://localhost:8000/redoc`
+- **Production API Docs:** `https://api.onetechly.com/docs`
 
 ### Key Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/register` | Create new user account |
-| POST | `/auth/login` | Login and receive JWT token |
-| GET | `/users/me` | Get current user profile |
-| POST | `/transcripts/extract` | Extract YouTube transcript |
-| POST | `/audio/convert` | Convert video to MP3 |
-| POST | `/batch/create` | Create batch download job |
-| POST | `/stripe/create-checkout-session` | Initialize Stripe payment |
-| POST | `/stripe/webhook` | Handle Stripe events |
-
----
-
-## 🧪 Testing
-
-### Frontend Tests
-
-```bash
-npm test
-```
-
-### Backend Tests
-
-```bash
-pytest
-```
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| **POST** | `/register` | Create new user account | No |
+| **POST** | `/token` | Login and receive JWT token | No |
+| **GET** | `/users/me` | Get current user profile | Yes |
+| **POST** | `/download_transcript/` | Download transcript (TXT/SRT/VTT) | Yes |
+| **POST** | `/download_audio/` | Convert video to MP3 | Yes |
+| **POST** | `/download_video/` | Download video (MP4) | Yes |
+| **POST** | `/batch/submit` | Create batch download job | Yes (Pro/Premium) |
+| **POST** | `/webhook/stripe` | Handle Stripe events | No (Webhook) |
+| **GET** | `/subscription_status` | Get user's subscription details | Yes |
+| **GET** | `/health` | Service health check | No |
 
 ---
 
 ## 📊 Tech Stack
 
 ### Frontend
-- **React 18** — UI framework
-- **React Router** — Client-side routing
+- **React 18** — Modern UI framework
+- **React Router v6** — Client-side routing
 - **Tailwind CSS** — Utility-first styling
 - **Axios** — HTTP client
-- **React Query** — Server state management
+- **Stripe.js** — Payment UI
 
 ### Backend
-- **FastAPI** — High-performance Python web framework
+- **FastAPI** — High-performance Python framework
 - **SQLAlchemy** — SQL ORM
 - **Pydantic** — Data validation
 - **JWT** — Secure authentication
-- **Stripe Python SDK** — Payment processing
-- **yt-dlp** — YouTube content extraction
+- **Stripe Python SDK** — Payments
+- **yt-dlp** — YouTube extraction (v2025.11.12)
+- **SendGrid** — Email delivery
 
 ### Infrastructure
-- **Render** — Cloud platform for hosting
+- **Render** — Cloud hosting
 - **PostgreSQL** — Production database
-- **GitHub** — Version control and CI/CD
+- **DECODO** — Mobile proxy network
+- **GitHub** — Version control
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please follow these steps:
+We welcome contributions!
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License. See `LICENSE` file for details.
+MIT License. See [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -375,107 +571,22 @@ This project is licensed under the MIT License. See `LICENSE` file for details.
 
 ## 🙏 Acknowledgments
 
-- **FastAPI** for the incredible Python web framework
-- **Render** for seamless cloud deployment
-- **Stripe** for robust payment infrastructure
-- **yt-dlp** for reliable YouTube content extraction
+- **FastAPI** — Incredible Python web framework
+- **Render** — Seamless cloud deployment
+- **Stripe** — Robust payment infrastructure
+- **yt-dlp** — Reliable YouTube extraction
+- **DECODO** — Enterprise mobile proxy network
 
 ---
-
-**Built with ❤️ by OneTechly** -->
-
-# 🎬 YouTube Content Downloader (YCD) — by OneTechly
-
-**OneTechly** builds cloud-native SaaS that helps creators, developers, and teams manage video content fast and securely.
-
-**YouTube Content Downloader (YCD)** is a sleek web app to:
-- extract **clean transcripts**
-- convert to **MP3 audio**
-- download **full videos**
-
-All wrapped with authentication, usage tracking, subscriptions, and production-grade security.
-
-🌐 **Live App:** https://onetechly.com/ycd  
-🏢 **Company:** https://onetechly.com
-
----
-
-## 🚀 Overview
-
-- **Frontend:** React + Tailwind (responsive, mobile-first)  
-- **Backend:** FastAPI (Python) + SQLAlchemy  
-- **Payments:** Stripe (webhooks + subscription sync)  
-- **Deployment:** Render (static site + web service)  
-- **Database:** PostgreSQL (prod) / SQLite (dev)  
-- **Security:** JWT auth, CSP/HSTS headers, strict CORS
-
----
-
-## ✨ Features
-
-| Category | Description |
-| --- | --- |
-| 🧠 Transcripts | Clean + timestamped, multiple formats |
-| 🎧 Audio | MP3 extraction with metadata & cover |
-| 🎥 Video | Multi-quality MP4 downloads |
-| 🧾 Subscriptions | Stripe-powered Pro & Premium tiers |
-| 🔒 Auth | JWT with password reset |
-| 📱 Mobile-Ready | Optimized UI across devices |
-| 📊 Dashboard | Usage, history, batch jobs |
-| ☁️ Scalable | Cloud-native on Render |
-| 🛡️ Production Security | CSP, HSTS, strict CORS |
-
----
-
-## 🖼 Screenshots
-
-> Images use absolute raw GitHub URLs so they display on **GitHub Mobile** and desktop alike.
-> If your repo/org changes, update the `Ambro19/onetechly-frontend` path.
-
-### 🌐 OneTechly Homepage
-*Professional SaaS landing with modern UI components.*
 
 <p align="center">
-  <img alt="OneTechly Homepage"
-       src="https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/onetechly-home.png"
-       width="900">
+  <strong>Built with ❤️ by OneTechly</strong><br>
+  <em>Empowering creators with professional-grade tools</em>
 </p>
-
----
-
-### 🎯 Product Landing — YouTube Content Downloader
-*Clean, branded entry page for users to sign in or create an account.*
 
 <p align="center">
-  <img alt="YCD Landing Page"
-       src="https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/ycd-landing.png"
-       width="900">
+  <a href="https://onetechly.com">Website</a> •
+  <a href="https://onetechly.com/ycd">Live App</a> •
+  <a href="https://api.onetechly.com/docs">API Docs</a> •
+  <a href="mailto:onetechly@gmail.com">Contact</a>
 </p>
-
----
-
-### 📊 Dashboard Page
-*Modern user dashboard with subscription insights and activity logs.*
-
-<p align="center">
-  <img alt="YCD Dashboard"
-       src="https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/ycd-dashboard.png"
-       width="900">
-</p>
-
----
-
-## ⚙️ Installation
-
-### Prerequisites
-- **Node.js** v16+  
-- **Python** 3.9+  
-- **PostgreSQL** (production) or SQLite (development)  
-- **Stripe account** (for payments)
-
-### Frontend Setup
-
-```bash
-git clone https://github.com/Ambro19/onetechly-frontend.git
-cd onetechly-frontend
-npm install
