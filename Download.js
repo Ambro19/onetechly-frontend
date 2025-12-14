@@ -1,9 +1,9 @@
-/* Production-ready Download.js — Full code patched */
-// frontend/src/pages/Download.js — Production-ready (limits-aware + next_reset + robust usage sync)
-// - Displays next reset date ("Resets Nov 1")
-// - Disables actions when limits are reached (computed locally from subscriptionStatus)
-// - Refreshes + short-polls subscription after successful operations to keep Dashboard in sync
-// - Polished UI with segmented controls, mobile handling, auto-start download
+/* frontend/src/pages/Download.js — PRODUCTION-READY (patched)
+   Fixes:
+   - Route consistency: uses /app/dashboard and /app/history (matches AppBrand)
+   - Subscription usage sync: fetches /subscription_status directly to avoid stale context closures
+   - Defensive rendering: avoids crashes when subscriptionStatus is null
+*/
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -65,6 +65,7 @@ export default function DownloadPage() {
     }
   }, []);
 
+  // Hard refresh subscription on load
   useEffect(() => {
     if (isAuthenticated && refreshSubscriptionStatus) {
       refreshSubscriptionStatus().catch(() => {});
@@ -88,6 +89,7 @@ export default function DownloadPage() {
 
   const previewVideoId = extractVideoId(youtubeInput);
 
+  // Defensive defaults (prevents null crashes)
   const limits = useMemo(() => subscriptionStatus?.limits || {}, [subscriptionStatus]);
   const usage  = useMemo(() => subscriptionStatus?.usage  || {}, [subscriptionStatus]);
 
@@ -185,26 +187,28 @@ export default function DownloadPage() {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }, [subscriptionStatus]);
 
-  const pollUsageSync = useCallback(async (beforeUsageMap, keyToObserve) => {
-    const maxTries = 6;
-    let tries = 0;
-
-    while (tries < maxTries && !pollStopRef.current) {
-      tries += 1;
-      try {
-        await refreshSubscriptionStatus();
-      } catch {}
-      await new Promise((res) => setTimeout(res, 400));
-
-      const currentUsed = getUsed(keyToObserve);
-      const beforeUsed = Number(beforeUsageMap?.[keyToObserve] ?? 0);
-
-      if (currentUsed > beforeUsed) {
-        return true;
-      }
+  // Direct status fetch to avoid stale context updates
+  const fetchSubscriptionStatusDirect = useCallback(async () => {
+    if (!token) return null;
+    try {
+      const res = await fetch(`${API_BASE_URL}/subscription_status/?sync=1`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data;
+    } catch {
+      return null;
     }
-    return false;
-  }, [refreshSubscriptionStatus, subscriptionStatus]);
+  }, [token]);
+
+  const syncSubscriptionAfterAction = useCallback(async () => {
+    // 1) direct fetch (reliable)
+    const direct = await fetchSubscriptionStatusDirect();
+    // 2) also nudge your context (if implemented)
+    try { await refreshSubscriptionStatus?.(); } catch {}
+    return direct;
+  }, [fetchSubscriptionStatusDirect, refreshSubscriptionStatus]);
 
   const handleTranscriptDownload = async () => {
     if (!result) return toast.error('No transcript available');
@@ -258,13 +262,6 @@ export default function DownloadPage() {
         payload = { youtube_id: id, quality: videoQuality };
       }
 
-      const beforeUsage = {
-        clean_transcripts: getUsed('clean_transcripts'),
-        unclean_transcripts: getUsed('unclean_transcripts'),
-        audio_downloads: getUsed('audio_downloads'),
-        video_downloads: getUsed('video_downloads'),
-      };
-
       const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -282,8 +279,6 @@ export default function DownloadPage() {
         setResult(data.transcript || '');
         setDownloadCompleted(true);
         toast.success('📄 Transcript ready');
-
-        await pollUsageSync(beforeUsage, transcriptType === 'clean' ? 'clean_transcripts' : 'unclean_transcripts');
       } else {
         setDownloadUrl(data.direct_download_url || '');
         const meta = {
@@ -305,6 +300,7 @@ export default function DownloadPage() {
             const href = data.direct_download_url.startsWith('http')
               ? data.direct_download_url
               : `${API_BASE_URL}${data.direct_download_url}`;
+
             if (isMobile()) {
               window.open(href, '_blank', 'noopener');
             } else {
@@ -317,22 +313,22 @@ export default function DownloadPage() {
               a.click();
               document.body.removeChild(a);
             }
+
             setDownloadStarted(true);
             setSuccessMessage('Successfully Downloaded');
             toast.success('💾 File download started');
           } catch {}
         }
-
-        await pollUsageSync(beforeUsage, downloadType === 'audio' ? 'audio_downloads' : 'video_downloads');
       }
+
+      // Always sync after any successful operation
+      await syncSubscriptionAfterAction();
+
     } catch (err) {
-      setError(err.message || 'Operation failed');
-      toast.error(err.message || 'Operation failed');
+      setError(err?.message || 'Operation failed');
+      toast.error(err?.message || 'Operation failed');
     } finally {
       setIsLoading(false);
-      try {
-        await refreshSubscriptionStatus();
-      } catch {}
     }
   };
 
@@ -344,9 +340,7 @@ export default function DownloadPage() {
       return (
         <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg overflow-auto max-h-96 text-sm leading-relaxed">
           {paragraphs.map((p, i) => (
-            <p key={i} className="mb-3 text-gray-800">
-              {p}
-            </p>
+            <p key={i} className="mb-3 text-gray-800">{p}</p>
           ))}
         </div>
       );
@@ -362,25 +356,12 @@ export default function DownloadPage() {
           <div className="mb-2 text-blue-600 font-semibold">🎬 WEBVTT Format</div>
           {lines.map((line, idx) => {
             if (line.startsWith('WEBVTT') || line.startsWith('Kind:') || line.startsWith('Language:')) {
-              return (
-                <div key={idx} className="text-purple-600 font-semibold">
-                  {line}
-                </div>
-              );
-            } else if (line.includes('-->')) {
-              return (
-                <div key={idx} className="text-blue-600 font-semibold mt-2">
-                  {line}
-                </div>
-              );
-            } else if (line.trim()) {
-              return (
-                <div key={idx} className="text-gray-800 mb-1">
-                  {line}
-                </div>
-              );
+              return <div key={idx} className="text-purple-600 font-semibold">{line}</div>;
             }
-            return null;
+            if (line.includes('-->')) {
+              return <div key={idx} className="text-blue-600 font-semibold mt-2">{line}</div>;
+            }
+            return line.trim() ? <div key={idx} className="text-gray-800 mb-1">{line}</div> : null;
           })}
         </div>
       );
@@ -429,22 +410,17 @@ export default function DownloadPage() {
       <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg overflow-auto max-h-96 text-sm font-mono">
         <div className="mb-2 text-green-600 font-semibold">🕒 Timestamped Format</div>
         <div className="grid grid-cols-[80px_1fr] gap-x-4">
-          {result
-            .split('\n')
-            .filter(Boolean)
-            .map((line, idx) => {
-              const m = line.match(/^\[(\d{2}:\d{2})\] (.+)$/);
-              return m ? (
-                <React.Fragment key={idx}>
-                  <div className="text-gray-500 font-semibold">[{m[1]}]</div>
-                  <div className="text-gray-800">{m[2]}</div>
-                </React.Fragment>
-              ) : (
-                <div key={idx} className="col-span-2 text-gray-800">
-                  {line}
-                </div>
-              );
-            })}
+          {result.split('\n').filter(Boolean).map((line, idx) => {
+            const m = line.match(/^\[(\d{2}:\d{2})\] (.+)$/);
+            return m ? (
+              <React.Fragment key={idx}>
+                <div className="text-gray-500 font-semibold">[{m[1]}]</div>
+                <div className="text-gray-800">{m[2]}</div>
+              </React.Fragment>
+            ) : (
+              <div key={idx} className="col-span-2 text-gray-800">{line}</div>
+            );
+          })}
         </div>
       </div>
     );
@@ -486,10 +462,6 @@ export default function DownloadPage() {
     );
   };
 
-  const audioAtLimit = atLimit('audio_downloads');
-  const videoAtLimit = atLimit('video_downloads');
-  const uncleanAtLimit = atLimit('unclean_transcripts');
-
   const primaryBtnClass = `flex-1 py-3 px-6 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
     xUiPrimaryDisabled
       ? 'bg-gray-300 text-gray-600 cursor-not-allowed opacity-70'
@@ -504,7 +476,7 @@ export default function DownloadPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto p-6">
 
-        {/* ============ Professional Brand Header (Top-Left) ============ */}
+        {/* Brand header */}
         <div className="mb-6">
           <AppBrand
             size={32}
@@ -515,7 +487,7 @@ export default function DownloadPage() {
           />
         </div>
 
-        {/* ============ Centered Page Header with Official YCD Logo ============ */}
+        {/* Centered header */}
         <div className="text-center mb-6">
           <div className="flex justify-center items-center mb-4">
             <YcdLogo size={56} />
@@ -534,7 +506,7 @@ export default function DownloadPage() {
           </button>
           {successMessage && <span className="sr-only" aria-live="polite">{successMessage}</span>}
 
-          {/* Usage Status Card */}
+          {/* Usage card */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4 mt-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm">
@@ -551,11 +523,12 @@ export default function DownloadPage() {
                   {tier?.charAt(0).toUpperCase() + tier?.slice(1) || 'Free'}
                 </span>
               </div>
+
               <button
                 onClick={async () => {
                   setIsRefreshingSubscription(true);
                   try {
-                    await refreshSubscriptionStatus();
+                    await syncSubscriptionAfterAction();
                     toast.success('Subscription status refreshed!', { duration: 1600 });
                   } catch {
                     toast.error('Failed to refresh subscription status');
@@ -567,18 +540,9 @@ export default function DownloadPage() {
                 className="text-xs text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center transition-colors"
                 title="Refresh subscription status"
               >
-                <svg
-                  className={`w-3 h-3 mr-1 ${isRefreshingSubscription ? 'animate-spin' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
+                <svg className={`w-3 h-3 mr-1 ${isRefreshingSubscription ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 {isRefreshingSubscription ? 'Refreshing...' : 'Refresh'}
               </button>
@@ -590,6 +554,7 @@ export default function DownloadPage() {
               <div>🎵 Audio: {safeFormatUsage('audio_downloads')}</div>
               <div>🎬 Video: {safeFormatUsage('video_downloads')}</div>
             </div>
+
             {subscriptionStatus?.next_reset && (
               <div className="mt-1 text-xs text-gray-500">
                 Resets {formatResetDate()}
@@ -598,7 +563,7 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* ============ Working Examples ============ */}
+        {/* Examples */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 shadow-sm">
           <h3 className="text-green-800 font-semibold mb-2">✅ Try These Working Examples:</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -615,7 +580,7 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* ============ YouTube Input ============ */}
+        {/* Input */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Enter YouTube Video ID or URL:
@@ -636,104 +601,58 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Download Type Selection ============ */}
+        {/* Download type */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <label
-            className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              downloadType === 'transcript' ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <input
-              type="radio"
-              value="transcript"
-              checked={downloadType === 'transcript'}
-              onChange={() => setDownloadType('transcript')}
-              className="mr-2"
-            />
-            <div className="font-bold text-gray-900">📄 Transcript</div>
-            <div className="text-sm text-gray-600">Text transcription</div>
-          </label>
-
-          <label
-            className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              downloadType === 'audio' ? 'border-green-500 bg-green-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <input
-              type="radio"
-              value="audio"
-              checked={downloadType === 'audio'}
-              onChange={() => setDownloadType('audio')}
-              className="mr-2"
-            />
-            <div className="font-bold text-gray-900">🎵 Audio</div>
-            <div className="text-sm text-gray-600">Extract MP3</div>
-          </label>
-
-          <label
-            className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-              downloadType === 'video' ? 'border-purple-500 bg-purple-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <input
-              type="radio"
-              value="video"
-              checked={downloadType === 'video'}
-              onChange={() => setDownloadType('video')}
-              className="mr-2"
-            />
-            <div className="font-bold text-gray-900">🎬 Video</div>
-            <div className="text-sm text-gray-600">Download MP4</div>
-          </label>
-        </div>
-
-        {/* ============ Transcript Options ============ */}
-        {downloadType === 'transcript' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {[
+            { key: 'transcript', label: '📄 Transcript', desc: 'Text transcription', border: 'blue' },
+            { key: 'audio', label: '🎵 Audio', desc: 'Extract MP3', border: 'green' },
+            { key: 'video', label: '🎬 Video', desc: 'Download MP4', border: 'purple' }
+          ].map((t) => (
             <label
+              key={t.key}
               className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                transcriptType === 'clean' ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+                downloadType === t.key
+                  ? `border-${t.border}-500 bg-${t.border}-50 shadow-sm`
+                  : 'border-gray-200 hover:border-gray-300'
               }`}
             >
               <input
                 type="radio"
-                value="clean"
-                checked={transcriptType === 'clean'}
-                onChange={() => setTranscriptType('clean')}
+                value={t.key}
+                checked={downloadType === t.key}
+                onChange={() => setDownloadType(t.key)}
                 className="mr-2"
               />
+              <div className="font-bold text-gray-900">{t.label}</div>
+              <div className="text-sm text-gray-600">{t.desc}</div>
+            </label>
+          ))}
+        </div>
+
+        {/* Transcript options */}
+        {downloadType === 'transcript' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <label className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+              transcriptType === 'clean' ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+            }`}>
+              <input type="radio" value="clean" checked={transcriptType === 'clean'} onChange={() => setTranscriptType('clean')} className="mr-2" />
               <div className="font-bold text-gray-900">📄 Clean Format</div>
               <div className="text-sm text-gray-600">Text only (no timestamps)</div>
               <div className="text-xs text-blue-600 mt-1">Usage: {safeFormatUsage('clean_transcripts')}</div>
             </label>
 
-            <label
-              className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                transcriptType === 'unclean' ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <input
-                type="radio"
-                value="unclean"
-                checked={transcriptType === 'unclean'}
-                onChange={() => setTranscriptType('unclean')}
-                className="mr-2"
-              />
+            <label className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+              transcriptType === 'unclean' ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+            }`}>
+              <input type="radio" value="unclean" checked={transcriptType === 'unclean'} onChange={() => setTranscriptType('unclean')} className="mr-2" />
               <div className="font-bold text-gray-900">🕒 Unclean Format</div>
               <div className="text-sm text-gray-600 mb-2">With timestamps</div>
               <div className="text-xs text-blue-600 mb-2">Usage: {safeFormatUsage('unclean_transcripts')}</div>
 
               {transcriptType === 'unclean' && (
-                <div
-                  className={`pl-4 mt-2 space-y-2 border-l-2 border-blue-200 ${
-                    atLimit('unclean_transcripts') ? 'opacity-50' : ''
-                  }`}
-                >
+                <div className={`pl-4 mt-2 space-y-2 border-l-2 border-blue-200 ${atLimit('unclean_transcripts') ? 'opacity-50' : ''}`}>
                   {['srt', 'vtt'].map((fmt) => (
-                    <label
-                      key={fmt}
-                      className={`flex items-center ${atLimit('unclean_transcripts') ? 'cursor-not-allowed' : ''}`}
-                    >
+                    <label key={fmt} className={`flex items-center ${atLimit('unclean_transcripts') ? 'cursor-not-allowed' : ''}`}>
                       <input
                         type="radio"
                         name="uncleanFormat"
@@ -752,21 +671,13 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Audio Quality ============ */}
+        {/* Audio */}
         {downloadType === 'audio' && (
-          <div
-            className={`bg-green-50 border border-green-200 rounded-lg p-4 mb-6 shadow-sm ${
-              atLimit('audio_downloads') ? 'opacity-50 pointer-events-none' : ''
-            }`}
-          >
+          <div className={`bg-green-50 border border-green-200 rounded-lg p-4 mb-6 shadow-sm ${atLimit('audio_downloads') ? 'opacity-50 pointer-events-none' : ''}`}>
             <SegmentedRadioGroup
               name="audioQuality"
               legend="🎵 Audio Quality"
-              options={[
-                { value: 'high', label: 'High' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'low', label: 'Low' },
-              ]}
+              options={[{ value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }]}
               value={audioQuality}
               onChange={setAudioQuality}
               disabled={atLimit('audio_downloads')}
@@ -774,28 +685,17 @@ export default function DownloadPage() {
               variant="green"
               className="text-center"
             />
-            <div className="text-xs text-green-600 mt-2 text-center">
-              Usage: {safeFormatUsage('audio_downloads')}
-            </div>
+            <div className="text-xs text-green-600 mt-2 text-center">Usage: {safeFormatUsage('audio_downloads')}</div>
           </div>
         )}
 
-        {/* ============ Video Quality ============ */}
+        {/* Video */}
         {downloadType === 'video' && (
-          <div
-            className={`bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 shadow-sm ${
-              atLimit('video_downloads') ? 'opacity-50 pointer-events-none' : ''
-            }`}
-          >
+          <div className={`bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 shadow-sm ${atLimit('video_downloads') ? 'opacity-50 pointer-events-none' : ''}`}>
             <SegmentedRadioGroup
               name="videoQuality"
               legend="🎬 Video Quality"
-              options={[
-                { value: '1080p', label: '1080p' },
-                { value: '720p', label: '720p' },
-                { value: '480p', label: '480p' },
-                { value: '360p', label: '360p' },
-              ]}
+              options={[{ value: '1080p', label: '1080p' }, { value: '720p', label: '720p' }, { value: '480p', label: '480p' }, { value: '360p', label: '360p' }]}
               value={videoQuality}
               onChange={setVideoQuality}
               disabled={atLimit('video_downloads')}
@@ -803,13 +703,11 @@ export default function DownloadPage() {
               variant="purple"
               className="text-center"
             />
-            <div className="text-xs text-purple-600 mt-2 text-center">
-              Usage: {safeFormatUsage('video_downloads')}
-            </div>
+            <div className="text-xs text-purple-600 mt-2 text-center">Usage: {safeFormatUsage('video_downloads')}</div>
           </div>
         )}
 
-        {/* ============ Error Messages ============ */}
+        {/* Errors */}
         {getUsageLimitMessage() && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4 shadow-sm">
             ⚠️ {getUsageLimitMessage()}
@@ -822,7 +720,7 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Action Buttons ============ */}
+        {/* Buttons */}
         <div className="flex gap-4 mb-6">
           <button
             onClick={handleDownload}
@@ -859,7 +757,7 @@ export default function DownloadPage() {
           </button>
         </div>
 
-        {/* ============ Results Display ============ */}
+        {/* Results */}
         {(result || downloadUrl) && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 flex items-center">
@@ -894,25 +792,25 @@ export default function DownloadPage() {
           </div>
         )}
 
-        {/* ============ Navigation Buttons ============ */}
+        {/* Navigation */}
         <div className="text-center mb-6">
           <div className="flex gap-4 justify-center flex-wrap">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/app/dashboard')}
               className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             >
               ← Back to Dashboard
             </button>
             <button
-              onClick={() => navigate('/history')}
+              onClick={() => navigate('/app/history')}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               📚 View Complete History
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );
 }
-
