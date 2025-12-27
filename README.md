@@ -43,7 +43,7 @@ YCD provides a complete SaaS experience with professional-grade infrastructure:
 | ⚡ **Batch Processing** | Queue multiple downloads with Pro/Premium tier concurrency |
 | ☁️ **Cloud-Native** | Auto-scaling deployment with zero-downtime updates |
 | 🛡️ **Production Security** | CSP headers, HSTS enforcement, rate limiting, and input validation |
-| 🌐 **Bot Detection Bypass** | DECODO mobile proxy + automated cookie rotation for 95%+ success rate |
+| 🌐 **Bot Detection Bypass** | DECODO mobile proxy + automated cookie rotation for high success rate |
 
 ---
 
@@ -51,24 +51,10 @@ YCD provides a complete SaaS experience with professional-grade infrastructure:
 
 > **Note:** Images use absolute GitHub URLs for consistent display across all platforms and devices.
 
-### 🌐 OneTechly Homepage
-*Professional SaaS landing page with modern UI components and clear value proposition.*
-
-![OneTechly Homepage](https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/onetechly-home.png)
-
----
-
 ### 🎯 Product Landing — YouTube Content Downloader
 *Clean, branded entry point for users to sign in or create a new account.*
 
 ![YCD Landing Page](https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/ycd-landing.png)
-
----
-
-### 📊 Dashboard Page
-*Modern user dashboard with subscription status, usage analytics, and activity logs.*
-
-![YCD Dashboard](https://raw.githubusercontent.com/Ambro19/onetechly-frontend/main/public/readme-assets/ycd-dashboard.png)
 
 ---
 
@@ -108,7 +94,7 @@ REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_...
 REACT_APP_GA_TRACKING_ID=UA-XXXXXXXXX-X
 ```
 
-**Start development server:**
+**Start development server (dev only):**
 
 ```bash
 npm start
@@ -167,15 +153,11 @@ STRIPE_PREMIUM_PRODUCT_NAME=Premium Plan
 # ======================================
 # YOUTUBE COOKIES (Base64 Encoded)
 # ======================================
-# Export cookies from Chrome using "Get cookies.txt LOCALLY" extension
-# Convert to base64: python -c "import base64; print(base64.b64encode(open('youtube.com_cookies.txt', 'rb').read()).decode())"
 YT_COOKIES_B64=<your_base64_encoded_cookies>
 
 # ======================================
 # DECODO MOBILE PROXY (Recommended)
 # ======================================
-# Enables 95%+ success rate by bypassing YouTube bot detection
-# Sign up at: https://decodo.io
 PROXY_ENABLED=true
 PROXY_HOST=gate.decodo.com
 PROXY_PORT=10001
@@ -213,8 +195,7 @@ BATCH_MAX_CONCURRENCY_PREMIUM=8
 uvicorn main:app --reload
 ```
 
-**Backend API runs at:** `http://localhost:8000`
-
+**Backend API runs at:** `http://localhost:8000`  
 **Interactive API documentation:** `http://localhost:8000/docs`
 
 ---
@@ -285,82 +266,53 @@ YT_COOKIES_B64=<paste_base64_string_here>
 
 ## 🚀 Production Deployment (Render)
 
-### Prerequisites
+### 🎨 Frontend Deployment (Static Site)
 
-1. **Render Account:** [Sign up](https://dashboard.render.com)
-2. **GitHub Repository:** Connect your repos
-3. **Stripe Account:** Live mode configured
-4. **DECODO Account:** Mobile proxy subscription (2GB plan recommended)
+This repo is deployed as a **Render Static Site**.
 
----
+#### **Build Settings**
 
-### 📊 PostgreSQL Database Setup
+- **Build Command (recommended):** `npm ci && npm run build`
+- **Publish Directory:** `build`
+- **Branch:** `main`
 
-#### **Create Database Instance**
+✅ **In production you should deploy the built output (`build/`). `npm start` is development-only and should not be used for production hosting.**
 
-1. **Login to** [Render Dashboard](https://dashboard.render.com)
-2. **Click** "New +" → Select "PostgreSQL"
-3. **Configure:**
-   - **Name:** `ycd-production-db`
-   - **Region:** Same as backend service (lower latency)
-   - **Plan:** Starter ($7/month minimum for production)
-4. **Click** "Create Database"
-5. **Copy** Internal Database URL from Info tab
-   - Format: `postgresql://user:password@host:5432/dbname`
+#### **SPA Routing (Refresh Fix)**
 
----
+React Router routes like `/ycd`, `/pricing`, `/legal/terms` need SPA rewrites so refresh + shared links work.
 
-### 🎨 Frontend Deployment
+**Choose ONE method only (single source of truth):**
 
-#### **Create Static Site**
+**Option A (Recommended): `_redirects` file in repo**
 
-1. **New +** → Select **"Static Site"**
-2. **Connect** GitHub repository: `onetechly-frontend`
-3. **Configure Build Settings:**
-   - **Build Command:** `npm run build`
-   - **Publish Directory:** `build`
-   - **Branch:** `main`
-
-#### **Environment Variables**
-
-```env
-REACT_APP_API_URL=https://your-backend-name.onrender.com
-REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_...
-```
-
-#### **Configure SPA Routing**
-
-**Option A: Using `_redirects` file (Recommended)**
-
-Create `public/_redirects` in your project:
+Create `public/_redirects`:
 
 ```
 /*  /index.html  200
 ```
 
-This file is committed to version control and works automatically.
+CRA copies everything from `public/` into `build/`, so Render will apply it automatically.
 
-**Option B: Render Dashboard**
+**Option B: Render Dashboard Rule**
 
-Navigate to: **Redirects/Rewrites** → Add Rule:
+Redirects/Rewrites → Add:
 - **Source:** `/*`
 - **Destination:** `/index.html`
 - **Action:** `Rewrite`
 
-⚠️ **Important:** Choose ONE method only. Do not configure in both places.
+⚠️ **Do not keep both Option A and Option B enabled.**
 
 ---
 
-### ⚡ Backend Deployment
+### ⚡ Backend Deployment (Web Service)
 
-#### **Create Web Service**
+1. Create a Render Web Service for the backend repo
+2. **Start command:**
 
-1. **New +** → Select **"Web Service"**
-2. **Connect** GitHub repository: `onetechly-backend`
-3. **Configure Build Settings:**
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - **Branch:** `main`
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
 
 #### **Production Environment Variables**
 
@@ -427,68 +379,55 @@ BATCH_PREMIUM_MAX_LINKS=1000
 BATCH_MAX_JOBS_PER_USER=5
 BATCH_MAX_CONCURRENCY_PRO=2
 BATCH_MAX_CONCURRENCY_PREMIUM=8
-
-# ======================================
-# OPTIONAL INTEGRATIONS
-# ======================================
-ENABLE_WEBHOOKS=true
-ENABLE_S3_DELIVERY=false
-ENABLE_SLACK_ALERTS=false
 ```
 
-#### **🔐 Security: Production Environment**
+---
 
-Setting `ENVIRONMENT=production` automatically enables:
+## ✅ Production Verification Checklist
 
-- **CSP (Content Security Policy)** — Prevents XSS attacks
-- **HSTS (HTTP Strict Transport Security)** — Enforces HTTPS-only
-- **Strict CORS** — Blocks unauthorized cross-origin requests
-- **Rate Limiting** — Protects against abuse
+After a deploy, validate like a real user:
 
-Only set to `production` after:
-- ✅ SSL certificate is active
-- ✅ Domain configured and working
-- ✅ All features tested on production domain
+1. **Open these routes directly in a new tab (not via navbar):**
+   - `/ycd`
+   - `/pricing`
+   - `/legal/terms`
+
+2. **Hard refresh each page:**
+   - Windows: `Ctrl + Shift + R`
+   - macOS: `Cmd + Shift + R`
+
+3. **Copy/paste a deep link into a different browser or incognito window**
+
+4. **Confirm the response is 200 and renders the SPA (not a blank page / 404)**
+
+5. **Open DevTools → Console and confirm no runtime errors**
+
+6. **Confirm API connectivity:**
+   - login/register
+   - subscription status
+   - transcript/audio/video request
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### **Blank page on refresh**
 
-#### **Issue: "Sign in to confirm you're not a bot" errors**
+- Verify SPA rewrite is enabled (either `_redirects` OR Render rule)
+- Confirm destination is exactly `/index.html` (not `/*index.html`)
 
-**Cause:** Expired YouTube cookies or IP blocked
+### **Build warnings / audit vulnerabilities**
 
-**Solution:**
-1. Refresh cookies (see Cookie Setup section)
-2. Verify `PROXY_ENABLED=true` in environment
-3. Check DECODO proxy credentials are correct
-4. Wait 30 minutes if rate-limited
+- Prefer: `npm audit fix` then re-test
+- Use `npm audit fix --force` only if you're ready to validate breaking changes
+- ESLint warnings won't block deployment, but clean them for long-term maintainability
 
----
+### **"Sign in to confirm you're not a bot" errors**
 
-#### **Issue: Blank page on `/app/download`**
-
-**Cause:** Frontend routing not configured
-
-**Solution:**
-1. Check `public/_redirects` exists with content: `/*  /index.html  200`
-2. Rebuild frontend: `npm run build`
-3. Clear browser cache (Ctrl+Shift+R)
-4. Check console for errors (F12 → Console)
-
----
-
-#### **Issue: Audio/Video downloads fail with parse errors**
-
-**Cause:** YouTube bot detection or outdated yt-dlp
-
-**Solution:**
-1. Update yt-dlp: `pip install --upgrade yt-dlp` (latest: 2025.11.12)
-2. Verify proxy is active (check logs for "🌐 Using proxy" message)
-3. Try transcript download instead (more reliable)
-4. Test with different video ID
+- Refresh cookies (see Cookie Setup section)
+- Verify `PROXY_ENABLED=true` in environment
+- Check DECODO proxy credentials are correct
+- Wait 30 minutes if rate-limited
 
 ---
 
@@ -532,7 +471,7 @@ Once the backend is running, visit:
 - **Pydantic** — Data validation
 - **JWT** — Secure authentication
 - **Stripe Python SDK** — Payments
-- **yt-dlp** — YouTube extraction (v2025.11.12)
+- **yt-dlp** — YouTube extraction
 - **SendGrid** — Email delivery
 
 ### Infrastructure
