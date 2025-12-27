@@ -1,4 +1,4 @@
-// frontend/src/pages/Download.js — PRODUCTION (routes fixed + expiry refresh + robust sync)
+// frontend/src/pages/Download.js — PRODUCTION (routes fixed + expiry refresh + robust sync + CONSISTENT UI)
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -101,10 +101,14 @@ export default function DownloadPage() {
     return null;
   }, [downloadType, transcriptType]);
 
+  // ✅ FIXED: Clamp usage display to match Dashboard (no over-limit shown)
   const safeFormatUsage = (k) => {
     const u = getUsed(k);
     const l = getLimit(k);
-    return isUnlimited(l) ? `${u} / ∞` : `${u} / ${l ?? 0}`;
+    if (isUnlimited(l)) return `${u} / ∞`;
+    // Clamp usage to limit for consistent UI across all pages
+    const clamped = Math.min(Number(u || 0), Number(l || 0));
+    return `${clamped} / ${l ?? 0}`;
   };
 
   const getUsageLimitMessage = () => {
@@ -891,9 +895,3 @@ export default function DownloadPage() {
     </div>
   );
 }
-
-
-
-
-
-

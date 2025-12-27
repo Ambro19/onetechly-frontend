@@ -16,12 +16,50 @@ export default function LoginPage() {
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!form.username || !form.password) return toast.error("Enter username and password");
+    
     try {
       setLoading(true);
       await login(form.username, form.password);
       navigate("/app/dashboard");
     } catch (err) {
-      toast.error(err?.message || "Login failed");
+      // ✅ BULLETPROOF ERROR HANDLING - catches ALL error structures
+      console.error('Login error:', err); // Debug logging
+      
+      let errorMessage = "Login failed. Please try again.";
+      
+      // Check for HTTP status codes (from fetch responses)
+      const status = err?.response?.status || err?.status || 0;
+      
+      if (status === 401) {
+        errorMessage = "Invalid username or password";
+      } else if (status === 400) {
+        errorMessage = "Invalid login request";
+      } else if (status === 429) {
+        errorMessage = "Too many attempts. Please wait a moment.";
+      } else if (status >= 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else {
+        // Parse error message text (fallback)
+        const msg = (err?.message || err?.detail || String(err)).toLowerCase();
+        
+        // Check for common auth error patterns
+        if (msg.includes('401') || msg.includes('unauthorized') || 
+            msg.includes('invalid') || msg.includes('incorrect') ||
+            msg.includes('wrong password') || msg.includes('wrong username')) {
+          errorMessage = "Invalid username or password";
+        } else if (msg.includes('429') || msg.includes('too many') || msg.includes('rate limit')) {
+          errorMessage = "Too many attempts. Please wait a moment.";
+        } else if (msg.includes('500') || msg.includes('502') || msg.includes('503') || msg.includes('server')) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('connection')) {
+          errorMessage = "Connection error. Check your internet.";
+        } else if (msg && msg.length > 0 && msg.length < 100 && !msg.includes('error')) {
+          // Use the actual error message if it's short and user-friendly
+          errorMessage = err.message || err.detail || String(err);
+        }
+      }
+      
+      toast.error(errorMessage, { duration: 4000 });
     } finally {
       setLoading(false);
     }
@@ -137,5 +175,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-

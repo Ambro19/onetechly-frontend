@@ -396,6 +396,18 @@ export default function History() {
           </div>
           
           <h1 className="text-3xl font-bold text-gray-900 mb-2">🗂️ Download History</h1>
+          
+          {/* ✅ ADDED: Clear label that this shows COMPLETE history */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 rounded-full text-sm mb-3">
+            <span className="text-purple-700 font-medium">📚 Complete download history (all time)</span>
+            <button 
+              onClick={() => navigate('/activity')} 
+              className="text-purple-600 hover:text-purple-800 underline font-semibold"
+            >
+              View Recent Activity →
+            </button>
+          </div>
+
           <div className="text-sm text-gray-600">
             Logged in as: <span className="font-medium text-blue-700">{name}</span>{' '}
             (<span className="font-mono text-xs">{email}</span>)
@@ -625,7 +637,7 @@ export default function History() {
 
         <footer className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 text-sm text-gray-500 bg-white px-4 py-2 rounded-lg border">
-            ℹ️ Download history • Files are delivered immediately • Manual refresh only
+            ℹ️ Complete download history (all time) • Manual refresh only
           </div>
         </footer>
 
@@ -645,4 +657,3 @@ export default function History() {
     </div>
   );
 }
-

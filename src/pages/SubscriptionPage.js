@@ -66,9 +66,9 @@ export default function SubscriptionPage() {
   const planTier = (tier || 'free').toLowerCase();
   const isActive = planTier !== 'free';
 
-  // -------- helpers (clamp & progress) --------
+  // ✅ FIXED: Consistent clamping logic - matches Dashboard & Download pages
   const clamp = (u, l) => (l === 'unlimited' || l === Infinity || l == null ? Number(u || 0) : Math.min(Number(u || 0), Number(l || 0)));
-  const overBy = (u, l) => (l === 'unlimited' || l === Infinity || l == null ? 0 : Math.max(0, Number(u || 0) - Number(l || 0)));
+  
   const percent = (u, l) => {
     if (l === 'unlimited' || l === Infinity) return 0;
     const L = Number(l || 0);
@@ -86,12 +86,14 @@ export default function SubscriptionPage() {
     </div>
   );
 
+  // ✅ FIXED: Remove "(over by X)" display - clean UI like Dashboard
   const fmtUsage = (key) => {
     const u = subscriptionStatus?.usage?.[key] ?? 0;
     const l = subscriptionStatus?.limits?.[key];
     if (l === 'unlimited' || l === Infinity) return `${u} / ∞`;
-    const extra = overBy(u, l);
-    return `${clamp(u, l)} / ${l ?? 0}${extra > 0 ? `  (over by ${extra})` : ''}`;
+    // Clamp display to limit (no "over by" text)
+    const clamped = clamp(u, l);
+    return `${clamped} / ${l ?? 0}`;
   };
 
   const checkPaymentSuccess = useCallback(() => {
@@ -349,7 +351,7 @@ export default function SubscriptionPage() {
           {/* Navigation Actions - UPDATED: Back to Dashboard button now matches Download page */}
           <div className="mt-4 flex gap-4 justify-center flex-wrap">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/app/dashboard')}
               className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             >
               ← Back to Dashboard
@@ -652,4 +654,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
