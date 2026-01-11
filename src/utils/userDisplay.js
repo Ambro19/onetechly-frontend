@@ -1,60 +1,126 @@
-// utils/userDisplay.js
-// Canonical helpers for user name/email across the app.
+// ========================================
+// USER DISPLAY UTILITIES
+// ========================================
+// File: frontend/src/utils/userDisplay.js
+// Purpose: Helper functions for displaying user information
+// Created: January 2026
 
-const normalizeEmail = (email) =>
-  typeof email === 'string' ? email.trim().toLowerCase() : '';
-
-const decodeJwt = (token) => {
-  try {
-    const [, payload] = token.split('.');
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(json);
-  } catch {
-    return {};
+/**
+ * Get display name for user
+ * Prioritizes: first_name > username > "User"
+ * 
+ * @param {Object} user - User object from auth context
+ * @returns {string} Display name
+ */
+export function getDisplayName(user) {
+  if (!user) return 'User';
+  
+  // Try first name
+  if (user.first_name && user.first_name.trim()) {
+    return user.first_name.trim();
   }
-};
-
-export const getDisplayEmail = (user) => {
-  // 1) prefer AuthContext user shape
-  const fromUser =
-    user?.email ||
-    user?.user?.email ||
-    user?.profile?.email ||
-    user?.principal?.email;
-  if (fromUser) return normalizeEmail(fromUser);
-
-  // 2) try persisted "user" (if your AuthContext persists it)
-  try {
-    const stored = localStorage.getItem('user');
-    if (stored) {
-      const u = JSON.parse(stored);
-      if (u?.email) return normalizeEmail(u.email);
-    }
-  } catch {}
-
-  // 3) try JWT claim
-  const token = localStorage.getItem('token');
-  if (token) {
-    const p = decodeJwt(token);
-    if (p?.email) return normalizeEmail(p.email);
+  
+  // Try full name
+  if (user.name && user.name.trim()) {
+    return user.name.trim();
   }
+  
+  // Try username
+  if (user.username && user.username.trim()) {
+    return user.username.trim();
+  }
+  
+  // Fallback
+  return 'User';
+}
 
-  // 4) fallback
-  return 'user@example.com';
-};
+/**
+ * Get display email for user
+ * Returns email or "No email" if not available
+ * 
+ * @param {Object} user - User object from auth context
+ * @returns {string} Display email
+ */
+export function getDisplayEmail(user) {
+  if (!user) return 'No email';
+  
+  if (user.email && user.email.trim()) {
+    return user.email.trim();
+  }
+  
+  return 'No email';
+}
 
-export const getDisplayName = (user) => {
-  const name =
-    user?.username ||
-    user?.name ||
-    user?.user?.username ||
-    user?.profile?.name;
+/**
+ * Get user initials for avatar
+ * Uses first letter of first_name and last_name, or username
+ * 
+ * @param {Object} user - User object from auth context
+ * @returns {string} User initials (max 2 characters)
+ */
+export function getUserInitials(user) {
+  if (!user) return 'U';
+  
+  // Try first and last name
+  if (user.first_name && user.last_name) {
+    return (user.first_name[0] + user.last_name[0]).toUpperCase();
+  }
+  
+  // Try full name (split by space)
+  if (user.name && user.name.includes(' ')) {
+    const parts = user.name.split(' ');
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  
+  // Try username (first 2 letters)
+  if (user.username && user.username.length >= 2) {
+    return user.username.substring(0, 2).toUpperCase();
+  }
+  
+  // Fallback to first letter of username or email
+  if (user.username) {
+    return user.username[0].toUpperCase();
+  }
+  
+  if (user.email) {
+    return user.email[0].toUpperCase();
+  }
+  
+  return 'U';
+}
 
-  if (name && typeof name === 'string') return name;
+/**
+ * Get full name (first + last)
+ * 
+ * @param {Object} user - User object from auth context
+ * @returns {string} Full name
+ */
+export function getFullName(user) {
+  if (!user) return 'User';
+  
+  if (user.first_name && user.last_name) {
+    return `${user.first_name} ${user.last_name}`.trim();
+  }
+  
+  if (user.name) {
+    return user.name.trim();
+  }
+  
+  return getDisplayName(user);
+}
 
-  // if no name, use email prefix as a human-ish fallback
-  const email = getDisplayEmail(user);
-  return email && email !== 'user@example.com'
-    ? email.split('@')[0]
-    : 'User';
-};
+/**
+ * Format user for display in header/profile
+ * Returns object with formatted user data
+ * 
+ * @param {Object} user - User object from auth context
+ * @returns {Object} Formatted user data
+ */
+export function formatUserForDisplay(user) {
+  return {
+    name: getDisplayName(user),
+    email: getDisplayEmail(user),
+    initials: getUserInitials(user),
+    fullName: getFullName(user),
+  };
+}

@@ -1,11 +1,14 @@
-// frontend/src/pages/History.js — 429-safe loader, de-dupe, short cache; keeps your UI intact
+// frontend/src/pages/History.js — PixelPerfect Screenshot API
+// CONVERTED FROM: YCD History.js
+// PURPOSE: Complete screenshot history with robust caching and error handling
+// CHANGES: Download history → Screenshot history
+
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayEmail, getDisplayName } from '../utils/userDisplay';
 import AppBrand from '../components/AppBrand';
-import YcdLogo from '../components/YcdLogo';
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -18,11 +21,11 @@ const debug =
     ? (...args) => console.log('[History]', ...args)
     : () => {};
 
-// ------ Small in-memory cache (per user) ------
+// Small in-memory cache (per user)
 const CACHE_TTL_MS = 30_000;
-const cache = new Map(); // key: username -> { ts, items }
+const cache = new Map();
 
-// Prevent overlapping fetches even if refresh clicked multiple times
+// Prevent overlapping fetches
 let inflight = null;
 
 // Enhanced timestamp parsing
@@ -32,50 +35,37 @@ const parseServerTime = (ts) => {
   return new Date(`${ts}Z`);
 };
 
+// CONVERTED: Tabs for screenshot formats
 const TABS = [
-  { key: 'all', label: 'All Downloads', icon: '📁' },
-  { key: 'transcripts', label: 'Transcripts', icon: '📄' },
-  { key: 'audio', label: 'Audio', icon: '🎵' },
-  { key: 'video', label: 'Video', icon: '🎬' },
+  { key: 'all', label: 'All Screenshots', icon: '📸' },
+  { key: 'png', label: 'PNG', icon: '🖼️' },
+  { key: 'jpeg', label: 'JPEG', icon: '📷' },
+  { key: 'webp', label: 'WebP', icon: '🎨' },
+  { key: 'pdf', label: 'PDF', icon: '📄' },
 ];
 
-// Type/icon helpers
+// CONVERTED: Type/icon helpers for screenshots
 const typeToIcon = (type, format) => {
-  const t = (type || '').toLowerCase();
   const f = (format || '').toLowerCase();
 
-  if (t.includes('audio') || ['mp3', 'm4a', 'aac', 'wav', 'flac'].includes(f)) return '🎵';
-  if (t.includes('video') || ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(f)) return '🎬';
-
-  if (t.includes('transcript') || ['srt', 'vtt', 'txt'].includes(f)) {
-    if (['srt', 'vtt'].includes(f)) return '🕒';
-    if (t.includes('unclean') || t.includes('timestamp')) return '🕒';
-    return '📄';
-  }
-  return '📄';
+  if (f === 'png') return '🖼️';
+  if (f === 'jpeg' || f === 'jpg') return '📷';
+  if (f === 'webp') return '🎨';
+  if (f === 'pdf') return '📄';
+  
+  return '📸'; // Default screenshot icon
 };
 
 const prettyType = (rawType, fileFormat) => {
-  const type = (rawType || '').toLowerCase();
   const format = (fileFormat || '').toLowerCase();
 
-  if (['srt', 'vtt'].includes(format)) {
-    return format === 'srt' ? 'SRT Transcript (Timestamped)' : 'VTT Transcript (Timestamped)';
-  }
-  if (format === 'txt') {
-    if (type.includes('unclean') || type.includes('timestamp')) return 'Timestamped Transcript';
-    return 'Clean Transcript';
-  }
-  if (['mp3', 'm4a', 'aac', 'wav', 'flac'].includes(format)) return 'Audio File';
-  if (['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(format)) return 'Video File';
-
-  if (type.includes('clean_transcript') || type === 'clean') return 'Clean Transcript';
-  if (type.includes('unclean_transcript') || type === 'unclean') return 'Timestamped Transcript';
-  if (type.includes('audio_download') || type === 'audio') return 'Audio File';
-  if (type.includes('video_download') || type === 'video') return 'Video File';
+  if (format === 'png') return 'PNG Screenshot';
+  if (format === 'jpeg' || format === 'jpg') return 'JPEG Screenshot';
+  if (format === 'webp') return 'WebP Screenshot';
+  if (format === 'pdf') return 'PDF Screenshot';
 
   if (rawType) return rawType.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
-  return 'Content';
+  return 'Screenshot';
 };
 
 const formatSize = (bytes) => {
@@ -107,38 +97,36 @@ const formatProcessing = (v) => {
   return Number.isFinite(num) ? `${num.toFixed(2)}s` : String(v);
 };
 
-// Normalize one item
+// CONVERTED: Normalize screenshot item
 const normalizeItem = (raw, idx) => {
   const get = (obj, ...keys) => keys.find((k) => obj && obj[k] != null) && obj[keys.find((k) => obj && obj[k] != null)];
-  const id = get(raw, 'id') ?? `generated-${Date.now()}-${idx}`;
-  const type = get(raw, 'type', 'transcript_type', 'file_type', 'category', 'action') || 'transcript';
+  const id = get(raw, 'id', 'screenshot_id') ?? `generated-${Date.now()}-${idx}`;
+  const type = get(raw, 'type', 'screenshot_type', 'category') || 'screenshot';
   const fileFormat =
-    get(raw, 'file_format', 'format', 'ext', 'extension') ||
-    (type.includes('audio') ? 'mp3' : type.includes('video') ? 'mp4' : 'txt');
-  const timestamp = get(raw, 'downloaded_at', 'created_at', 'timestamp', 'time') || new Date().toISOString();
-  const fileName =
-    get(raw, 'file_name', 'filename', 'name') ||
-    `${type}_${get(raw, 'video_id', 'youtube_id', 'yt_id') || 'unknown'}.${fileFormat}`;
+    get(raw, 'format', 'file_format', 'ext', 'extension') || 'png';
+  const timestamp = get(raw, 'created_at', 'timestamp', 'captured_at') || new Date().toISOString();
+  const url = get(raw, 'url', 'target_url', 'website_url');
 
   return {
     id,
     type,
-    file_format: fileFormat,
-    video_id: get(raw, 'video_id', 'videoId', 'youtube_id', 'yt_id'),
-    quality: get(raw, 'quality'),
-    file_size: get(raw, 'file_size', 'size') || 0,
-    downloaded_at: timestamp,
+    format: fileFormat,
+    url: url,
+    width: get(raw, 'width'),
+    height: get(raw, 'height'),
+    file_size: get(raw, 'file_size', 'size_bytes', 'size') || 0,
+    created_at: timestamp,
     processing_time: get(raw, 'processing_time', 'process_time', 'duration'),
     status: get(raw, 'status') || 'completed',
-    file_name: fileName,
-    language: get(raw, 'language', 'lang') || 'en',
+    screenshot_url: get(raw, 'screenshot_url', 'url', 'file_url'),
+    full_page: get(raw, 'full_page', 'fullpage'),
+    dark_mode: get(raw, 'dark_mode', 'darkmode'),
     error_message: get(raw, 'error_message', 'error'),
     description: get(raw, 'description'),
-    action: get(raw, 'action'),
   };
 };
 
-// Fetch wrapper with 429/5xx backoff (max 4 tries)
+// Fetch wrapper with 429/5xx backoff
 async function fetchWithBackoff(url, options, { tries = 4, baseDelay = 500 } = {}) {
   let attempt = 0;
   while (attempt < tries) {
@@ -146,16 +134,15 @@ async function fetchWithBackoff(url, options, { tries = 4, baseDelay = 500 } = {
     if (res && res.ok) return res;
 
     const status = res?.status ?? 0;
-    // Retry on 429 or transient 5xx
     if ([429, 502, 503, 504].includes(status) || !res) {
-      const wait = baseDelay * Math.pow(2, attempt); // 0.5s, 1s, 2s, 4s
+      const wait = baseDelay * Math.pow(2, attempt);
       await new Promise((r) => setTimeout(r, wait));
       attempt++;
       continue;
     }
-    return res; // non-retryable status
+    return res;
   }
-  return null; // give up
+  return null;
 }
 
 export default function History() {
@@ -215,12 +202,11 @@ export default function History() {
       inflight = (async () => {
         const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-        // Try primary endpoint
+        // CONVERTED: Try screenshot history endpoints
         const endpoints = [
-          `${API_BASE_URL}/user/download-history`,
-          // Fallbacks:
-          `${API_BASE_URL}/user/history`,
-          `${API_BASE_URL}/download-history`,
+          `${API_BASE_URL}/api/v1/user/screenshot-history`,
+          `${API_BASE_URL}/user/screenshot-history`,
+          `${API_BASE_URL}/api/v1/screenshots`,
         ];
 
         let got = null;
@@ -230,8 +216,8 @@ export default function History() {
           if (!res) continue;
           if (res.ok) {
             const data = await res.json().catch(() => ({}));
-            const arr = Array.isArray(data.downloads)
-              ? data.downloads
+            const arr = Array.isArray(data.screenshots)
+              ? data.screenshots
               : Array.isArray(data.items)
               ? data.items
               : Array.isArray(data)
@@ -254,8 +240,8 @@ export default function History() {
         // Normalize, sort, limit
         const normalized = got.slice(0, 120).map(normalizeItem);
         normalized.sort((a, b) => {
-          const A = parseServerTime(a.downloaded_at)?.getTime() || 0;
-          const B = parseServerTime(b.downloaded_at)?.getTime() || 0;
+          const A = parseServerTime(a.created_at)?.getTime() || 0;
+          const B = parseServerTime(b.created_at)?.getTime() || 0;
           return B - A;
         });
 
@@ -291,84 +277,56 @@ export default function History() {
     }
   }, [token, loading, username, hasLoaded]);
 
-  // Load once on mount (or when user changes)
+  // Load once on mount
   useEffect(() => {
     if (isAuthenticated && !hasLoaded) load();
   }, [isAuthenticated, load, hasLoaded, username]);
 
   // Manual refresh
   const handleManualRefresh = useCallback(async () => {
-    cache.delete(username); // Invalidate short cache
+    cache.delete(username);
     setHasLoaded(false);
     await load();
   }, [load, username]);
 
-  // Filtering
+  // CONVERTED: Filtering by screenshot format
   const filtered = useMemo(() => {
     if (active === 'all') return items;
     return items.filter((item) => {
-      const type = (item.type || '').toLowerCase();
-      const format = (item.file_format || '').toLowerCase();
-      const action = (item.action || '').toLowerCase();
-
+      const format = (item.format || '').toLowerCase();
+      
       switch (active) {
-        case 'transcripts':
-          return (
-            type.includes('transcript') ||
-            type.includes('clean') ||
-            type.includes('unclean') ||
-            action.includes('transcript') ||
-            ['srt', 'vtt', 'txt'].includes(format)
-          );
-        case 'audio':
-          return (
-            type.includes('audio') ||
-            action.includes('audio') ||
-            ['mp3', 'm4a', 'aac', 'wav', 'flac'].includes(format)
-          );
-        case 'video':
-          return (
-            type.includes('video') ||
-            action.includes('video') ||
-            ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(format)
-          );
+        case 'png':
+          return format === 'png';
+        case 'jpeg':
+          return format === 'jpeg' || format === 'jpg';
+        case 'webp':
+          return format === 'webp';
+        case 'pdf':
+          return format === 'pdf';
         default:
           return true;
       }
     });
   }, [active, items]);
 
-  // Counts
+  // CONVERTED: Counts by format
   const counts = useMemo(() => {
-    const cats = { transcripts: 0, audio: 0, video: 0 };
+    const cats = { png: 0, jpeg: 0, webp: 0, pdf: 0 };
     items.forEach((item) => {
-      const type = (item.type || '').toLowerCase();
-      const format = (item.file_format || '').toLowerCase();
-      const action = (item.action || '').toLowerCase();
-
-      if (
-        type.includes('transcript') ||
-        type.includes('clean') ||
-        type.includes('unclean') ||
-        action.includes('transcript') ||
-        ['srt', 'vtt', 'txt'].includes(format)
-      ) {
-        cats.transcripts++;
-      } else if (
-        type.includes('audio') ||
-        action.includes('audio') ||
-        ['mp3', 'm4a', 'aac', 'wav', 'flac'].includes(format)
-      ) {
-        cats.audio++;
-      } else if (
-        type.includes('video') ||
-        action.includes('video') ||
-        ['mp4', 'mkv', 'avi', 'mov', 'webm'].includes(format)
-      ) {
-        cats.video++;
+      const format = (item.format || '').toLowerCase();
+      
+      if (format === 'png') {
+        cats.png++;
+      } else if (format === 'jpeg' || format === 'jpg') {
+        cats.jpeg++;
+      } else if (format === 'webp') {
+        cats.webp++;
+      } else if (format === 'pdf') {
+        cats.pdf++;
       }
     });
-    return { all: cats.transcripts + cats.audio + cats.video, ...cats };
+    return { all: cats.png + cats.jpeg + cats.webp + cats.pdf, ...cats };
   }, [items]);
 
   const email = getDisplayEmail(user);
@@ -378,28 +336,28 @@ export default function History() {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
 
-        {/* ============ Professional Brand Header (Top-Left) ============ */}
+        {/* Brand Header */}
         <div className="mb-6">
           <AppBrand
             size={32}
             showText={true}
-            label="OneTechly — YCD"
-            logoSrc="/logo_onetechly.png"
-            to="/app/dashboard"
+            label="PixelPerfect API"
+            logoSrc="/logo_pixelperfect.png"
+            to="/dashboard"
           />
         </div>
 
-        {/* ============ Centered Page Header with Official YCD Logo ============ */}
+        {/* Page Header */}
         <header className="mb-6 text-center">
           <div className="flex justify-center mb-4">
-            <YcdLogo size={56} />
+            <div className="text-6xl">📸</div>
           </div>
           
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">🗂️ Download History</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">🗂️ Screenshot History</h1>
           
-          {/* ✅ ADDED: Clear label that this shows COMPLETE history */}
+          {/* Clear label that this shows COMPLETE history */}
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 border border-purple-200 rounded-full text-sm mb-3">
-            <span className="text-purple-700 font-medium">📚 Complete download history (all time)</span>
+            <span className="text-purple-700 font-medium">📚 Complete screenshot history (all time)</span>
             <button 
               onClick={() => navigate('/activity')} 
               className="text-purple-600 hover:text-purple-800 underline font-semibold"
@@ -420,10 +378,10 @@ export default function History() {
           {/* Navigation Buttons */}
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
             <button
-              onClick={() => navigate('/download')}
+              onClick={() => navigate('/screenshot')}
               className="px-4 py-3 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-medium transition-colors"
             >
-              ← Downloads
+              ← New Screenshot
             </button>
             <button
               onClick={() => navigate('/dashboard')}
@@ -479,7 +437,7 @@ export default function History() {
                 </svg>
               </div>
               <div className="ml-3 flex-1">
-                <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Download History</h3>
+                <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Screenshot History</h3>
                 <p className="text-red-700 text-sm leading-relaxed mb-3">
                   {connectionError.includes('missing columns')
                     ? 'The database needs to be updated with new columns. Run: python migrate_database.py'
@@ -514,33 +472,33 @@ export default function History() {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Downloads</h3>
-              <p className="text-gray-600">Fetching your download history...</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Screenshots</h3>
+              <p className="text-gray-600">Fetching your screenshot history...</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="text-6xl mb-4">📂</div>
+              <div className="text-6xl mb-4">📸</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {items.length === 0 ? 'No downloads yet' : `No ${active} downloads`}
+                {items.length === 0 ? 'No screenshots yet' : `No ${active} screenshots`}
               </h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
                 {items.length === 0
-                  ? 'Start downloading content to see your history here.'
-                  : `You haven't downloaded any ${active} content yet. Try a different category or start a new download.`}
+                  ? 'Start capturing screenshots to see your history here.'
+                  : `You haven't captured any ${active} screenshots yet. Try a different format or capture a new screenshot.`}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={() => navigate('/download')}
+                  onClick={() => navigate('/screenshot')}
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  Start Downloading
+                  Capture Screenshot
                 </button>
                 {items.length > 0 && (
                   <button
                     onClick={() => setActive('all')}
                     className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
                   >
-                    View All Downloads
+                    View All Screenshots
                   </button>
                 )}
               </div>
@@ -550,17 +508,23 @@ export default function History() {
               {filtered.map((item, index) => (
                 <div key={item.id} className="p-6 hover:bg-gray-50 transition-colors duration-150">
                   <div className="flex items-start gap-4">
-                    <div className="text-3xl flex-shrink-0">{typeToIcon(item.type, item.file_format)}</div>
+                    <div className="text-3xl flex-shrink-0">{typeToIcon(item.type, item.format)}</div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h3 className="font-semibold text-gray-900 text-lg truncate">
-                          {prettyType(item.type, item.file_format)}
+                          {prettyType(item.type, item.format)}
                         </h3>
 
-                        {item.quality && (
+                        {item.full_page && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {item.quality}
+                            Full Page
+                          </span>
+                        )}
+
+                        {item.dark_mode && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-white">
+                            Dark Mode
                           </span>
                         )}
 
@@ -577,33 +541,43 @@ export default function History() {
                         </span>
                       </div>
 
-                      {item.file_name && (
-                        <p className="text-sm text-gray-600 mb-2 truncate" title={item.file_name}>
-                          📁 {item.file_name}
+                      {item.url && (
+                        <p className="text-sm text-gray-600 mb-2 truncate" title={item.url}>
+                          🌐 {item.url}
                         </p>
                       )}
 
                       <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                        {item.video_id && (
+                        {item.width && item.height && (
                           <span className="flex items-center gap-1">
-                            🎬 <span className="font-mono">{item.video_id}</span>
+                            📐 {item.width}x{item.height}
                           </span>
                         )}
                         <span className="flex items-center gap-1">
-                          📄 {item.file_format?.toUpperCase() || 'Unknown'}
+                          📄 {item.format?.toUpperCase() || 'Unknown'}
                         </span>
                         <span className="flex items-center gap-1">📏 {formatSize(item.file_size)}</span>
                         {item.processing_time && (
                           <span className="flex items-center gap-1">⏱️ {formatProcessing(item.processing_time)}</span>
                         )}
-                        {item.language && (
-                          <span className="flex items-center gap-1">🌐 {item.language.toUpperCase()}</span>
-                        )}
                       </div>
+
+                      {item.screenshot_url && (
+                        <div className="mt-3">
+                          <a
+                            href={item.screenshot_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
+                          >
+                            🔗 View Screenshot
+                          </a>
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-right flex-shrink-0">
-                      <div className="text-sm font-medium text-gray-900 mb-1">{formatWhen(item.downloaded_at)}</div>
+                      <div className="text-sm font-medium text-gray-900 mb-1">{formatWhen(item.created_at)}</div>
                       <div className="text-xs text-gray-500">#{index + 1}</div>
                     </div>
                   </div>
@@ -628,16 +602,16 @@ export default function History() {
             📋 <span>View Recent Activity</span>
           </button>
           <button
-            onClick={() => navigate('/download')}
+            onClick={() => navigate('/screenshot')}
             className="flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium"
           >
-            🚀 <span>Start New Download</span>
+            🚀 <span>Capture New Screenshot</span>
           </button>
         </div>
 
         <footer className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 text-sm text-gray-500 bg-white px-4 py-2 rounded-lg border">
-            ℹ️ Complete download history (all time) • Manual refresh only
+            ℹ️ Complete screenshot history (all time) • Manual refresh only
           </div>
         </footer>
 

@@ -1,82 +1,45 @@
-<!--=============IMPORTANT: ✅ Title tag: <title>OneTechly — YouTube Content Downloader (YCD)</title> =======-->
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-
-    <!-- Viewport + safe area -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P433VMY2T4"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-P433VMY2T4');
-    </script>
-
-    <!-- Force light UI everywhere (discourage auto-darkening on mobile) -->
-    <meta name="color-scheme" content="light" />
-    <meta name="supported-color-schemes" content="light" />
-    <!-- Keep browser UI bars light in both light/dark device modes -->
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#f8fafc" />
-    <meta name="msapplication-TileColor" content="#f8fafc" />
-
-    <!-- iOS PWA/browser chrome -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="YT Downloader" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-
-    <!-- Google AdSense -->
-    <meta name="google-adsense-account" content="ca-pub-9651782322798769">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9651782322798769"
-     crossorigin="anonymous"></script>
-
-    <title>OneTechly — YouTube Content Downloader (YCD)</title>
-    <meta name="application-name" content="YouTube Content Downloader" />
-    <meta
-      name="description"
-      content="Download YouTube transcripts (TXT/VTT/SRT), extract audio (MP3), and save videos with full mobile support."
-    />
-
-    <!-- Social -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#3B82F6" />
+    
+    <!-- Favicons - PixelPerfect Camera Shutter Icon -->
+    <!--<link rel="icon" href="%PUBLIC_URL%/favicon.ico" /> -->
+    <link rel="icon" type="image/png" href="%PUBLIC_URL%/favicon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/favicons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="%PUBLIC_URL%/favicons/android-chrome-512x512.png">
+    
+    <!-- Primary Meta Tags -->
+    <title>PixelPerfect - Screenshot API</title>
+    <meta name="title" content="PixelPerfect - Screenshot API" />
+    <meta name="description" content="Pixel-perfect screenshots, every time. Fast, reliable, and developer-friendly screenshot API." />
+    
+    <!-- OpenGraph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="YouTube Content Downloader" />
-    <meta property="og:description" content="Download YouTube transcripts, extract audio, and save videos — mobile friendly." />
-    <meta property="og:url" content="https://onetechly.com" />
-    <meta property="og:image" content="https://onetechly.com/favicon_io/android-chrome-512x512.png" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="512" />
-    <meta property="og:image:height" content="512" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="YouTube Content Downloader" />
-    <meta name="twitter:description" content="Download YouTube transcripts, extract audio, and save videos — mobile friendly." />
-    <meta name="twitter:image" content="https://onetechly.com/favicon_io/android-chrome-512x512.png" />
-    <meta name="robots" content="index,follow" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-
-    <!-- PWA + icons -->
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/x-icon" href="/favicon_io/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png" />
-
-    <!-- Hard-stop any auto-dark painting of native controls -->
-    <style>
-      :root { color-scheme: light; }
-      @media (prefers-color-scheme: dark) {
-        html, body { background: #f8fafc !important; color: #0f172a !important; }
-        input, select, textarea, button { background: #ffffff; color: #0f172a; }
-      }
-    </style>
+    <meta property="og:url" content="https://pixelperfectapi.net/" />
+    <meta property="og:title" content="PixelPerfect - Screenshot API" />
+    <meta property="og:description" content="Pixel-perfect screenshots, every time. Fast, reliable, and developer-friendly." />
+    <meta property="og:image" content="https://pixelperfectapi.net/social-media/pixelperfect-og-image.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://pixelperfectapi.net/" />
+    <meta property="twitter:title" content="PixelPerfect - Screenshot API" />
+    <meta property="twitter:description" content="Pixel-perfect screenshots, every time" />
+    <meta property="twitter:image" content="https://pixelperfectapi.net/social-media/pixelperfect-twitter-card.png" />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run YouTube Content Downloader.</noscript>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    
+    <!-- ✅ React app mounts here -->
     <div id="root"></div>
   </body>
 </html>

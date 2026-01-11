@@ -1,124 +1,184 @@
-// src/components/Header.jsx
-// App header (mobile friendly) — now branded as YCD
-import React, { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { useSubscription } from "../contexts/SubscriptionContext";
-import AppBrand from "./AppBrand";
+// ========================================
+// HEADER COMPONENT - PIXELPERFECT
+// ========================================
+// Reusable header component with responsive navigation
+// File: frontend/src/components/Header.jsx
+// Author: OneTechly
+// Created: January 2026
+
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ResponsiveLogo } from './ResponsiveLogo';
 
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
-  const { tier } = useSubscription();
-  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  const handleLogout = () => {
-    if (window.confirm("Are you sure you want to logout?")) {
-      logout();
-      navigate("/login");
-    }
-    setIsMenuOpen(false);
-  };
-
-  const isActive = (path) => location.pathname.startsWith(`/app/${path}`);
-
-  const nav = [
-    { path: "dashboard", label: "Dashboard", icon: "🏠" },
-    { path: "download", label: "Download", icon: "📥" },
-    { path: "subscription", label: "Subscription", icon: "⭐" },
-    { path: "history", label: "History", icon: "🗂️" },
-  ];
+  // Check if current route is active
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-      <div className="px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* YCD brand */}
-          <AppBrand />
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          
+          {/* Logo */}
+          <Link to="/" className="flex items-center">
+            <ResponsiveLogo textColor="text-gray-900" />
+          </Link>
 
-          {/* User + menu toggle */}
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">
-                {user?.username}
-              </div>
-              <div
-                className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  tier === "free"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : tier === "pro"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-purple-100 text-purple-800"
-                }`}
-              >
-                {(tier || "free").replace(/^\w/, (c) => c.toUpperCase())}
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsMenuOpen((v) => !v)}
-              className="p-2 rounded-lg hover:bg-gray-100"
-              aria-label="Toggle menu"
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <a 
+              href="#features" 
+              className={`font-medium transition-colors ${
+                isActive('/#features') 
+                  ? 'text-blue-600' 
+                  : 'text-gray-700 hover:text-blue-600'
+              }`}
             >
-              <svg
-                className={`w-6 h-6 text-gray-600 transition-transform ${
-                  isMenuOpen ? "rotate-90" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                {isMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
-              </svg>
-            </button>
+              Features
+            </a>
+            <a 
+              href="#pricing" 
+              className={`font-medium transition-colors ${
+                isActive('/#pricing') 
+                  ? 'text-blue-600' 
+                  : 'text-gray-700 hover:text-blue-600'
+              }`}
+            >
+              Pricing
+            </a>
+            <Link 
+              to="/docs" 
+              className={`font-medium transition-colors ${
+                isActive('/docs') 
+                  ? 'text-blue-600' 
+                  : 'text-gray-700 hover:text-blue-600'
+              }`}
+            >
+              Documentation
+            </Link>
+            <Link 
+              to="/api" 
+              className={`font-medium transition-colors ${
+                isActive('/api') 
+                  ? 'text-blue-600' 
+                  : 'text-gray-700 hover:text-blue-600'
+              }`}
+            >
+              API
+            </Link>
+          </nav>
+
+          {/* Desktop CTA Buttons */}
+          <div className="hidden md:flex items-center space-x-4">
+            <Link
+              to="/login"
+              className="text-gray-700 hover:text-blue-600 font-semibold transition-colors"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/register"
+              className="bg-gradient-to-r from-blue-600 to-blue-800 text-white 
+                        px-6 py-2.5 rounded-lg font-semibold 
+                        hover:from-blue-700 hover:to-blue-900 
+                        transition-all shadow-md hover:shadow-lg
+                        transform hover:-translate-y-0.5"
+            >
+              Get Started Free
+            </Link>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            aria-label="Toggle menu"
+          >
+            <svg 
+              className="w-6 h-6" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              {mobileMenuOpen ? (
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M6 18L18 6M6 6l12 12" 
+                />
+              ) : (
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4 6h16M4 12h16M4 18h16" 
+                />
+              )}
+            </svg>
+          </button>
         </div>
 
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="mt-4 pb-3 border-t border-gray-200 pt-4">
-            <nav className="space-y-2">
-              {nav.map((item) => (
-                <Link
-                  key={item.path}
-                  to={`/app/${item.path}`}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${
-                    isActive(item.path)
-                      ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
-                      : "text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  <span>{item.label}</span>
-                  {isActive(item.path) && (
-                    <span className="ml-auto w-2 h-2 bg-indigo-600 rounded-full" />
-                  )}
-                </Link>
-              ))}
-
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50"
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-200">
+            <nav className="space-y-4">
+              <a 
+                href="#features" 
+                className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 
+                          rounded-lg transition-colors font-medium"
+                onClick={() => setMobileMenuOpen(false)}
               >
-                <span className="text-xl">🚪</span>
-                <span>Logout</span>
-              </button>
+                Features
+              </a>
+              <a 
+                href="#pricing" 
+                className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 
+                          rounded-lg transition-colors font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Pricing
+              </a>
+              <Link 
+                to="/docs" 
+                className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 
+                          rounded-lg transition-colors font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Documentation
+              </Link>
+              <Link 
+                to="/api" 
+                className="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 
+                          rounded-lg transition-colors font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                API
+              </Link>
+              
+              {/* Mobile CTA Buttons */}
+              <div className="pt-4 border-t border-gray-200 space-y-2">
+                <Link
+                  to="/login"
+                  className="block w-full px-4 py-2 text-center text-gray-700 
+                            hover:bg-gray-100 rounded-lg font-semibold transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="block w-full bg-gradient-to-r from-blue-600 to-blue-800 
+                            text-white px-4 py-2 text-center rounded-lg font-semibold 
+                            hover:from-blue-700 hover:to-blue-900 transition-all"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Get Started Free
+                </Link>
+              </div>
             </nav>
           </div>
         )}
@@ -126,312 +186,3 @@ export default function Header() {
     </header>
   );
 }
-
-
-
-//////////////// === OneTechlt Official Logo ===//////////////
-// // src/components/Header.jsx
-// // MOBILE-OPTIMIZED with Professional UI
-// // - Professional mobile navigation
-// // - Responsive design matching login/register
-// // - User menu and logout functionality
-// // - Mobile-friendly touch targets
-// // - NEW: Brand logo automatically swaps to YCD on /ycd
-
-// import React, { useState } from "react";
-// import { Link, useNavigate, useLocation } from "react-router-dom";
-// import { useAuth } from "../contexts/AuthContext";
-// import { useSubscription } from "../contexts/SubscriptionContext";
-// import Logo from "./Logo";
-
-// const Header = () => {
-//   const [isMenuOpen, setIsMenuOpen] = useState(false);
-//   const { user, logout } = useAuth();
-//   const { tier } = useSubscription();
-//   const navigate = useNavigate();
-//   const location = useLocation();
-
-//   const handleLogout = () => {
-//     if (window.confirm("Are you sure you want to logout?")) {
-//       logout();
-//       navigate("/login");
-//     }
-//     setIsMenuOpen(false);
-//   };
-
-//   const isActivePage = (path) => location.pathname === path;
-
-//   // App-side navigation (for logged-in users)
-//   const navItems = [
-//     { path: "/dashboard", label: "Dashboard", icon: "🏠" },
-//     { path: "/download", label: "Download", icon: "📥" },
-//     { path: "/subscription", label: "Subscription", icon: "⭐" },
-//   ];
-
-//   // NEW: Swap brand based on path. If the current URL starts with /ycd,
-//   // use the YCD logo; otherwise, use the OneTechly logo.
-//   const onYcd = location.pathname.startsWith("/ycd");
-//   const brandLink = onYcd ? "/ycd" : "/dashboard";
-
-//   return (
-//     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-//       <div className="px-4 py-3">
-//         <div className="flex items-center justify-between">
-//           {/* Brand (now using shared Logo component) */}
-//           <Link to={brandLink} className="flex items-center space-x-3">
-//             <Logo
-//               brand={onYcd ? "ycd" : "onetechly"}
-//               size="md"
-//               withText
-//               to=""
-//               className="select-none"
-//             />
-//           </Link>
-
-//           {/* User Info and Menu Toggle */}
-//           <div className="flex items-center space-x-3">
-//             {/* User Info */}
-//             <div className="text-right">
-//               <div className="text-sm font-medium text-gray-900">
-//                 {user?.username}
-//               </div>
-//               <div
-//                 className={`text-xs px-2 py-1 rounded-full font-medium ${
-//                   tier === "free"
-//                     ? "bg-yellow-100 text-yellow-800"
-//                     : tier === "pro"
-//                     ? "bg-blue-100 text-blue-800"
-//                     : "bg-purple-100 text-purple-800"
-//                 }`}
-//               >
-//                 {tier?.charAt(0).toUpperCase() + tier?.slice(1) || "Free"}
-//               </div>
-//             </div>
-
-//             {/* Mobile Menu Toggle */}
-//             <button
-//               onClick={() => setIsMenuOpen(!isMenuOpen)}
-//               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-//               aria-label="Toggle menu"
-//             >
-//               <svg
-//                 className={`w-6 h-6 text-gray-600 transition-transform ${
-//                   isMenuOpen ? "rotate-90" : ""
-//                 }`}
-//                 fill="none"
-//                 stroke="currentColor"
-//                 viewBox="0 0 24 24"
-//               >
-//                 {isMenuOpen ? (
-//                   <path
-//                     strokeLinecap="round"
-//                     strokeLinejoin="round"
-//                     strokeWidth={2}
-//                     d="M6 18L18 6M6 6l12 12"
-//                   />
-//                 ) : (
-//                   <path
-//                     strokeLinecap="round"
-//                     strokeLinejoin="round"
-//                     strokeWidth={2}
-//                     d="M4 6h16M4 12h16M4 18h16"
-//                   />
-//                 )}
-//               </svg>
-//             </button>
-//           </div>
-//         </div>
-
-//         {/* Mobile Navigation Menu */}
-//         {isMenuOpen && (
-//           <div className="mt-4 pb-3 border-t border-gray-200 pt-4">
-//             <nav className="space-y-2">
-//               {navItems.map((item) => (
-//                 <Link
-//                   key={item.path}
-//                   to={item.path}
-//                   onClick={() => setIsMenuOpen(false)}
-//                   className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-//                     isActivePage(item.path)
-//                       ? "bg-red-50 text-red-700 border border-red-200"
-//                       : "text-gray-700 hover:bg-gray-50"
-//                   }`}
-//                 >
-//                   <span className="text-xl">{item.icon}</span>
-//                   <span>{item.label}</span>
-//                   {isActivePage(item.path) && (
-//                     <div className="ml-auto w-2 h-2 bg-red-600 rounded-full"></div>
-//                   )}
-//                 </Link>
-//               ))}
-
-//               {/* Logout Button */}
-//               <button
-//                 onClick={handleLogout}
-//                 className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors"
-//               >
-//                 <span className="text-xl">🚪</span>
-//                 <span>Logout</span>
-//               </button>
-//             </nav>
-
-//             {/* User Details in Menu */}
-//             <div className="mt-4 pt-4 border-t border-gray-200">
-//               <div className="px-4">
-//                 <div className="text-sm text-gray-600">Logged in as:</div>
-//                 <div className="font-medium text-gray-900">{user?.username}</div>
-//                 <div className="text-xs text-gray-500">{user?.email}</div>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </header>
-//   );
-// };
-
-// export default Header;
-
-
-//////////////////////////////////////////////////////////////////
-
-// // Header.js - MOBILE-OPTIMIZED with Professional UI
-// // 🔥 FEATURES:
-// // - ✅ Professional mobile navigation
-// // - ✅ Responsive design matching login/register
-// // - ✅ User menu and logout functionality
-// // - ✅ Mobile-friendly touch targets
-
-// import React, { useState } from 'react';
-// import { Link, useNavigate, useLocation } from 'react-router-dom';
-// import { useAuth } from '../contexts/AuthContext';
-// import { useSubscription } from '../contexts/SubscriptionContext';
-
-// const Header = () => {
-//   const [isMenuOpen, setIsMenuOpen] = useState(false);
-//   const { user, logout } = useAuth();
-//   const { tier } = useSubscription();
-//   const navigate = useNavigate();
-//   const location = useLocation();
-
-//   const handleLogout = () => {
-//     if (window.confirm('Are you sure you want to logout?')) {
-//       logout();
-//       navigate('/login');
-//     }
-//     setIsMenuOpen(false);
-//   };
-
-//   const isActivePage = (path) => {
-//     return location.pathname === path;
-//   };
-
-//   const navItems = [
-//     { path: '/dashboard', label: 'Dashboard', icon: '🏠' },
-//     { path: '/download', label: 'Download', icon: '📥' },
-//     { path: '/subscription', label: 'Subscription', icon: '⭐' },
-//   ];
-
-//   return (
-//     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
-//       <div className="px-4 py-3">
-//         <div className="flex items-center justify-between">
-//           {/* Logo and Brand */}
-//           <Link to="/dashboard" className="flex items-center space-x-3">
-//             <div className="bg-red-600 rounded-lg p-2">
-//               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-//                 <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-//               </svg>
-//             </div>
-//             <div>
-//               <div className="font-bold text-gray-900 text-lg">YouTube Content</div>
-//               <div className="text-xs text-gray-600 -mt-1">Downloader</div>
-//             </div>
-//           </Link>
-
-//           {/* User Info and Menu Toggle */}
-//           <div className="flex items-center space-x-3">
-//             {/* User Info */}
-//             <div className="text-right">
-//               <div className="text-sm font-medium text-gray-900">{user?.username}</div>
-//               <div className={`text-xs px-2 py-1 rounded-full font-medium ${
-//                 tier === 'free' ? 'bg-yellow-100 text-yellow-800' : 
-//                 tier === 'pro' ? 'bg-blue-100 text-blue-800' : 
-//                 'bg-purple-100 text-purple-800'
-//               }`}>
-//                 {tier?.charAt(0).toUpperCase() + tier?.slice(1) || 'Free'}
-//               </div>
-//             </div>
-
-//             {/* Mobile Menu Toggle */}
-//             <button
-//               onClick={() => setIsMenuOpen(!isMenuOpen)}
-//               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-//               aria-label="Toggle menu"
-//             >
-//               <svg 
-//                 className={`w-6 h-6 text-gray-600 transition-transform ${isMenuOpen ? 'rotate-90' : ''}`} 
-//                 fill="none" 
-//                 stroke="currentColor" 
-//                 viewBox="0 0 24 24"
-//               >
-//                 {isMenuOpen ? (
-//                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-//                 ) : (
-//                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-//                 )}
-//               </svg>
-//             </button>
-//           </div>
-//         </div>
-
-//         {/* Mobile Navigation Menu */}
-//         {isMenuOpen && (
-//           <div className="mt-4 pb-3 border-t border-gray-200 pt-4">
-//             <nav className="space-y-2">
-//               {navItems.map((item) => (
-//                 <Link
-//                   key={item.path}
-//                   to={item.path}
-//                   onClick={() => setIsMenuOpen(false)}
-//                   className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-//                     isActivePage(item.path)
-//                       ? 'bg-red-50 text-red-700 border border-red-200'
-//                       : 'text-gray-700 hover:bg-gray-50'
-//                   }`}
-//                 >
-//                   <span className="text-xl">{item.icon}</span>
-//                   <span>{item.label}</span>
-//                   {isActivePage(item.path) && (
-//                     <div className="ml-auto w-2 h-2 bg-red-600 rounded-full"></div>
-//                   )}
-//                 </Link>
-//               ))}
-              
-//               {/* Logout Button */}
-//               <button
-//                 onClick={handleLogout}
-//                 className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-colors"
-//               >
-//                 <span className="text-xl">🚪</span>
-//                 <span>Logout</span>
-//               </button>
-//             </nav>
-
-//             {/* User Details in Menu */}
-//             <div className="mt-4 pt-4 border-t border-gray-200">
-//               <div className="px-4">
-//                 <div className="text-sm text-gray-600">Logged in as:</div>
-//                 <div className="font-medium text-gray-900">{user?.username}</div>
-//                 <div className="text-xs text-gray-500">{user?.email}</div>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </header>
-//   );
-// };
-
-// export default Header;
-

@@ -1,12 +1,20 @@
+
+// ========================================
+// DASHBOARD PAGE - PIXELPERFECT SCREENSHOT API
+// ========================================
+// File: frontend/src/pages/DashboardPage.js
+// Author: OneTechly
+// Purpose: Main dashboard landing page after login
+// Updated: January 2026 - Converted from YCD to PixelPerfect
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { getDisplayEmail, getDisplayName } from '../utils/userDisplay';
 import AppBrand from '../components/AppBrand';
-import YcdLogo from '../components/YcdLogo';
 import toast from 'react-hot-toast';
-import DeleteAccountButton from '../components/DeleteAccountButton';
+// import DeleteAccountButton from '../components/DeleteAccountButton';  // TODO: Convert from YCD
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
@@ -35,7 +43,8 @@ export default function DashboardPage() {
   const fetchRecentActivity = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/user/recent-activity`, {
+      // CONVERTED: Screenshot activity endpoints
+      const response = await fetch(`${API_BASE_URL}/api/v1/user/recent-activity`, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
       if (response.ok) {
@@ -73,16 +82,17 @@ export default function DashboardPage() {
     }
   };
 
-  const formatUsage = (key) => {
-    const usage = subscriptionStatus?.usage?.[key] ?? 0;
-    const limit = subscriptionStatus?.limits?.[key];
+  // CONVERTED: Simplified usage formatting for screenshots
+  const formatUsage = () => {
+    const usage = subscriptionStatus?.usage?.screenshots ?? 0;
+    const limit = subscriptionStatus?.limits?.screenshots;
     if (limit === 'unlimited' || limit === Infinity) return `${usage} / ∞`;
     return `${clampCount(usage, limit)} / ${limit ?? 0}`;
   };
 
-  const getUsageColor = (key) => {
-    const usage = subscriptionStatus?.usage?.[key] ?? 0;
-    const limit = subscriptionStatus?.limits?.[key];
+  const getUsageColor = () => {
+    const usage = subscriptionStatus?.usage?.screenshots ?? 0;
+    const limit = subscriptionStatus?.limits?.screenshots;
     if (limit === 'unlimited' || limit === Infinity) return 'text-green-600';
     const safe = clampCount(usage, limit);
     const percentage = (Number(limit || 1) === 0) ? 0 : (safe / Number(limit || 1)) * 100;
@@ -107,17 +117,15 @@ export default function DashboardPage() {
           <AppBrand
             size={32}
             showText={true}
-            label="OneTechly — YCD"
-            logoSrc="/logo_onetechly.png"
-            to="/app/dashboard"
+            label="PixelPerfect API"
+            logoSrc="/logo_pixelperfect.png"
+            to="/dashboard"
           />
         </div>
 
-        {/* ============ Centered Page Header with Official YCD Logo ============ */}
+        {/* ============ Centered Page Header ============ */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="mb-4">
-            <YcdLogo size={56} />
-          </div>
+          <div className="text-6xl mb-4">📸</div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-2">📊 Dashboard</h1>
           <p className="text-sm text-gray-600">
@@ -133,6 +141,7 @@ export default function DashboardPage() {
             >
               Logout
             </button>
+            {/* 
             <span className="hidden sm:inline text-gray-400">•</span>
             <DeleteAccountButton
               className="text-red-500 hover:text-red-700 transition-colors text-sm font-medium"
@@ -142,6 +151,7 @@ export default function DashboardPage() {
                 navigate('/');
               }}
             />
+            */}
           </div>
         </div>
 
@@ -188,17 +198,9 @@ export default function DashboardPage() {
               <div className="text-center">
                 <div className="text-sm text-gray-600 mb-2">Usage Overview</div>
                 <div className="text-xs space-y-1">
+                  {/* CONVERTED: Single screenshot usage counter */}
                   <div>
-                    📄 <span className={getUsageColor('clean_transcripts')}>Clean Transcripts: {formatUsage('clean_transcripts')}</span>
-                  </div>
-                  <div>
-                    🕒 <span className={getUsageColor('unclean_transcripts')}>Unclean Transcripts: {formatUsage('unclean_transcripts')}</span>
-                  </div>
-                  <div>
-                    🎵 <span className={getUsageColor('audio_downloads')}>Audio Downloads: {formatUsage('audio_downloads')}</span>
-                  </div>
-                  <div>
-                    🎬 <span className={getUsageColor('video_downloads')}>Video Downloads: {formatUsage('video_downloads')}</span>
+                    📸 <span className={getUsageColor()}>Screenshots: {formatUsage()}</span>
                   </div>
                 </div>
                 {subscriptionStatus?.next_reset && (
@@ -209,17 +211,17 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* ============ Quick Actions ============ */}
+        {/* ============ Quick Actions (CONVERTED) ============ */}
         <section className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
-              onClick={() => navigate('/download')}
+              onClick={() => navigate('/screenshot')}
               className="bg-blue-600 text-white p-4 rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
             >
-              <div className="text-2xl mb-2">📥</div>
-              <div className="font-semibold">Start a New Download</div>
-              <div className="text-sm opacity-90">Download videos, audio, or transcripts</div>
+              <div className="text-2xl mb-2">📸</div>
+              <div className="font-semibold">Capture Screenshot</div>
+              <div className="text-sm opacity-90">Take a screenshot of any website</div>
             </button>
             <button
               onClick={() => navigate('/history')}
@@ -227,7 +229,7 @@ export default function DashboardPage() {
             >
               <div className="text-2xl mb-2">📚</div>
               <div className="font-semibold">History</div>
-              <div className="text-sm opacity-90">View your download history</div>
+              <div className="text-sm opacity-90">View your screenshot history</div>
             </button>
             <button
               onClick={() => navigate('/subscription')}
@@ -239,27 +241,27 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {(planTier === 'pro' || planTier === 'premium') && (
+          {(planTier === 'pro' || planTier === 'business' || planTier === 'premium') && (
             <div className="mt-4">
               <button
                 onClick={() => navigate('/batch')}
                 className="w-full bg-indigo-600 text-white p-4 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
               >
                 <div className="text-2xl mb-2">⚙️</div>
-                <div className="font-semibold">Batch Jobs (Beta)</div>
-                <div className="text-sm opacity-90">Process multiple videos at once</div>
+                <div className="font-semibold">Batch Screenshots</div>
+                <div className="text-sm opacity-90">Process multiple website screenshots at once</div>
               </button>
             </div>
           )}
         </section>
 
-        {/* ============ Recent Activity ============ */}
+        {/* ============ Recent Activity (CONVERTED) ============ */}
         <section className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-5 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
               <button
-                onClick={() => navigate('/history')}
+                onClick={() => navigate('/activity')}
                 className="text-blue-600 hover:text-blue-800 transition-colors text-sm"
               >
                 View All
@@ -274,15 +276,15 @@ export default function DashboardPage() {
               </div>
             ) : recentActivity.length === 0 ? (
               <div className="text-center py-8">
-                <div className="text-4xl mb-2">📭</div>
+                <div className="text-4xl mb-2">📸</div>
                 <div className="text-sm text-gray-600">No recent activity</div>
-                <div className="text-xs text-gray-500 mt-1">Start downloading to see your activity here</div>
+                <div className="text-xs text-gray-500 mt-1">Start capturing screenshots to see your activity here</div>
               </div>
             ) : (
               <div className="space-y-3">
                 {recentActivity.slice(0, 5).map((activity, index) => (
                   <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="text-lg">{activity.icon || '📁'}</div>
+                    <div className="text-lg">{activity.icon || '📸'}</div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 text-sm">{activity.action || 'Activity'}</div>
                       <div className="text-xs text-gray-600 truncate">{activity.description}</div>
@@ -297,10 +299,9 @@ export default function DashboardPage() {
 
         {/* ============ Footer ============ */}
         <footer className="text-center mt-8 text-sm text-gray-500">
-          🚀 Ready to download? • {planTier === 'premium' ? 'Unlimited' : planTier === 'pro' ? 'Pro' : 'Free'} Plan
+          🚀 Ready to capture? • {planTier === 'premium' ? 'Unlimited' : planTier === 'pro' ? 'Pro' : planTier === 'business' ? 'Business' : 'Free'} Plan
         </footer>
       </div>
     </div>
   );
 }
-

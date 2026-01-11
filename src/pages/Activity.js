@@ -1,11 +1,12 @@
-// src/pages/ActivityPage.js — PRODUCTION: Clear UI labels + no auto-refresh
+// src/pages/Activity.js — PixelPerfect Screenshot API
+// CONVERTED FROM: YCD Activity.js
+// PURPOSE: Show recent screenshot captures with activity tracking
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import AppBrand from '../components/AppBrand';
-import YcdLogo from '../components/YcdLogo';
 import { getDisplayEmail, getDisplayName } from '../utils/userDisplay';
 
 const API_BASE_URL =
@@ -60,7 +61,7 @@ const formatFileSize = (bytes) => {
   return `${size.toFixed(size < 10 ? 1 : 0)} ${units[i]}`;
 };
 
-// Professional activity enhancement with proper transcript classification
+// CONVERTED: Activity enhancement for screenshots (not downloads)
 const enhanceActivity = (activity, _index) => {
   const extractField = (obj, ...keys) => {
     for (const key of keys) {
@@ -69,67 +70,68 @@ const enhanceActivity = (activity, _index) => {
     return null;
   };
 
-  const type = extractField(activity, 'type', 'transcript_type', 'file_type', 'category') || '';
+  const type = extractField(activity, 'type', 'screenshot_type', 'category') || 'screenshot';
   const action = extractField(activity, 'action', 'description') || '';
-  const format = extractField(activity, 'file_format', 'format', 'ext') || '';
-  const videoId = extractField(activity, 'video_id', 'youtube_id', 'yt_id');
+  const format = extractField(activity, 'format', 'file_format', 'ext') || 'png';
+  const url = extractField(activity, 'url', 'target_url', 'website_url');
   const status = extractField(activity, 'status') || 'completed';
   
-  let enhancedIcon = activity.icon;
-  let enhancedAction = action;
+  let enhancedIcon = activity.icon || '📸';
+  let enhancedAction = action || 'Screenshot Captured';
   let enhancedDescription = activity.description || '';
-  let enhancedCategory = activity.category || 'general';
+  let enhancedCategory = activity.category || 'screenshot';
 
-  // Enhanced categorization with format-first logic
-  if (['srt', 'vtt'].includes(format)) {
-    enhancedIcon = '🕒';
-    enhancedAction = format === 'srt' ? 'Generated SRT Transcript' : 'Generated VTT Transcript';
-    enhancedCategory = 'transcript';
-    enhancedDescription = `${format?.toUpperCase()} transcript${videoId ? ` for video ${videoId}` : ''}`;
+  // CONVERTED: Categorization for screenshots (PNG, JPEG, WEBP, PDF)
+  if (format === 'png') {
+    enhancedIcon = '🖼️';
+    enhancedAction = 'PNG Screenshot';
+    enhancedCategory = 'png';
+    enhancedDescription = `PNG screenshot${url ? ` of ${url}` : ''}`;
   }
-  else if (format === 'txt' && (type.includes('clean') || !type.includes('unclean'))) {
+  else if (format === 'jpeg' || format === 'jpg') {
+    enhancedIcon = '📸';
+    enhancedAction = 'JPEG Screenshot';
+    enhancedCategory = 'jpeg';
+    enhancedDescription = `JPEG screenshot${url ? ` of ${url}` : ''}`;
+  }
+  else if (format === 'webp') {
+    enhancedIcon = '🎨';
+    enhancedAction = 'WebP Screenshot';
+    enhancedCategory = 'webp';
+    enhancedDescription = `WebP screenshot${url ? ` of ${url}` : ''}`;
+  }
+  else if (format === 'pdf') {
     enhancedIcon = '📄';
-    enhancedAction = 'Generated Clean Transcript';
-    enhancedCategory = 'transcript';
-    enhancedDescription = `Clean text transcript${videoId ? ` for video ${videoId}` : ''}`;
+    enhancedAction = 'PDF Screenshot';
+    enhancedCategory = 'pdf';
+    enhancedDescription = `PDF screenshot${url ? ` of ${url}` : ''}`;
   }
-  else if (format === 'txt' && type.includes('unclean')) {
-    enhancedIcon = '🕒';
-    enhancedAction = 'Generated Timestamped Transcript';
-    enhancedCategory = 'transcript';
-    enhancedDescription = `Timestamped transcript${videoId ? ` for video ${videoId}` : ''}`;
-  }
-  else if (type.includes('audio') || action.includes('audio') || 
-           ['mp3', 'm4a', 'aac', 'wav'].includes(format)) {
-    enhancedIcon = '🎵';
-    enhancedAction = 'Downloaded Audio File';
-    enhancedCategory = 'audio';
-    enhancedDescription = `${format?.toUpperCase() || 'Audio'} file${videoId ? ` from video ${videoId}` : ''}`;
-  }
-  else if (type.includes('video') || action.includes('video') || 
-           ['mp4', 'mkv', 'avi', 'mov'].includes(format)) {
-    enhancedIcon = '🎬';
-    enhancedAction = 'Downloaded Video File';
-    enhancedCategory = 'video';
-    enhancedDescription = `${format?.toUpperCase() || 'Video'} file${videoId ? ` (${videoId})` : ''}`;
-  }
-  else if (!enhancedIcon) {
-    enhancedIcon = '📁';
-    enhancedAction = action || 'Content Activity';
-    enhancedCategory = 'general';
+  else {
+    enhancedIcon = '📸';
+    enhancedAction = 'Screenshot Captured';
+    enhancedCategory = 'screenshot';
+    enhancedDescription = url ? `Screenshot of ${url}` : 'Screenshot captured';
   }
 
-  if (activity.quality && activity.quality !== 'default') {
-    enhancedDescription += ` (${activity.quality})`;
+  // Add dimensions if available
+  if (activity.width && activity.height) {
+    enhancedDescription += ` (${activity.width}x${activity.height})`;
   }
-  if (activity.file_size) {
-    const size = formatFileSize(activity.file_size);
+  
+  // Add file size if available
+  if (activity.file_size || activity.size_bytes) {
+    const size = formatFileSize(activity.file_size || activity.size_bytes);
     enhancedDescription += ` - ${size}`;
+  }
+
+  // Add full-page indicator
+  if (activity.full_page) {
+    enhancedDescription += ' • Full Page';
   }
 
   return {
     ...activity,
-    id: activity.id || `activity-${Date.now()}-${_index}`,
+    id: activity.id || activity.screenshot_id || `activity-${Date.now()}-${_index}`,
     icon: enhancedIcon,
     action: enhancedAction,
     description: enhancedDescription,
@@ -164,10 +166,11 @@ export default function ActivityPage() {
     try {
       let activities = [];
 
-      // Single attempt at each endpoint
+      // CONVERTED: Screenshot activity endpoints
       const endpoints = [
-        '/user/recent-activity',
-        '/user/download-history'
+        '/api/v1/user/recent-activity',      // Primary endpoint
+        '/api/v1/user/screenshot-history',   // Fallback
+        '/user/recent-activity'              // Legacy fallback
       ];
 
       for (const endpoint of endpoints) {
@@ -182,23 +185,26 @@ export default function ActivityPage() {
             const data = await res.json();
             debug(`✅ Success from ${endpoint}:`, data);
             
-            if (endpoint === '/user/recent-activity') {
-              activities = Array.isArray(data.activities) ? data.activities : [];
-            } else {
-              // Convert download history to activity format (limit to 20 most recent)
-              const downloads = Array.isArray(data.downloads) ? data.downloads : [];
-              activities = downloads.slice(0, 20).map((download, idx) => ({
-                id: download.id || idx + 1,
-                action: `Downloaded ${download.type || 'content'}`,
-                description: `${download.type || 'Content'} for video ${download.video_id || 'Unknown'}`,
-                timestamp: download.downloaded_at || download.created_at,
-                type: download.type,
-                video_id: download.video_id,
-                file_size: download.file_size,
-                file_format: download.file_format,
-                quality: download.quality,
-                status: download.status || 'completed'
+            // CONVERTED: Handle screenshot activity data
+            if (data.activities && Array.isArray(data.activities)) {
+              activities = data.activities;
+            } else if (data.screenshots && Array.isArray(data.screenshots)) {
+              // Convert screenshots to activity format
+              activities = data.screenshots.slice(0, 20).map((screenshot, idx) => ({
+                id: screenshot.id || screenshot.screenshot_id || idx + 1,
+                action: 'Screenshot Captured',
+                description: `Screenshot of ${screenshot.url || 'website'}`,
+                timestamp: screenshot.created_at || screenshot.timestamp,
+                url: screenshot.url,
+                width: screenshot.width,
+                height: screenshot.height,
+                format: screenshot.format,
+                file_size: screenshot.size_bytes || screenshot.file_size,
+                full_page: screenshot.full_page,
+                status: screenshot.status || 'completed'
               }));
+            } else if (Array.isArray(data)) {
+              activities = data;
             }
             
             if (activities.length > 0) {
@@ -235,7 +241,7 @@ export default function ActivityPage() {
         setConnectionStatus('connected');
         
         if (!hasTriedLoad) {
-          toast.success(`Loaded ${enhancedActivities.length} recent activities`, { 
+          toast.success(`Loaded ${enhancedActivities.length} recent screenshots`, { 
             id: 'activity-success'
           });
         }
@@ -290,28 +296,34 @@ export default function ActivityPage() {
   const name = getDisplayName(user);
   const email = getDisplayEmail(user);
 
-  // Group activities by category for better organization
+  // CONVERTED: Group activities by format instead of type
   const groupedActivities = useMemo(() => {
     const groups = {
       recent: [],
-      transcript: [],
-      audio: [],
-      video: [],
+      png: [],
+      jpeg: [],
+      webp: [],
+      pdf: [],
       other: []
     };
 
     items.forEach((activity, index) => {
       if (index < 5) groups.recent.push(activity);
       
-      switch (activity.category) {
-        case 'transcript':
-          groups.transcript.push(activity);
+      const format = (activity.format || '').toLowerCase();
+      switch (format) {
+        case 'png':
+          groups.png.push(activity);
           break;
-        case 'audio':
-          groups.audio.push(activity);
+        case 'jpeg':
+        case 'jpg':
+          groups.jpeg.push(activity);
           break;
-        case 'video':
-          groups.video.push(activity);
+        case 'webp':
+          groups.webp.push(activity);
+          break;
+        case 'pdf':
+          groups.pdf.push(activity);
           break;
         default:
           groups.other.push(activity);
@@ -330,23 +342,23 @@ export default function ActivityPage() {
           <AppBrand
             size={32}
             showText={true}
-            label="OneTechly — YCD"
-            logoSrc="/logo_onetechly.png"
-            to="/app/dashboard"
+            label="PixelPerfect API"
+            logoSrc="/logo_pixelperfect.png"
+            to="/dashboard"
           />
         </div>
 
-        {/* ============ Centered Page Header with Official YCD Logo ============ */}
+        {/* ============ Centered Page Header ============ */}
         <header className="mb-6 text-center">
           <div className="flex justify-center mb-4">
-            <YcdLogo size={56} />
+            <div className="text-6xl">📸</div>
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-2">📋 Recent Activity</h1>
           
-          {/* ✅ ADDED: Clear label that this shows RECENT activity only */}
+          {/* Clear label that this shows RECENT activity only */}
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-sm mb-3">
-            <span className="text-blue-700 font-medium">Showing your most recent downloads</span>
+            <span className="text-blue-700 font-medium">Showing your most recent screenshots</span>
             <button 
               onClick={() => navigate('/history')} 
               className="text-blue-600 hover:text-blue-800 underline font-semibold"
@@ -369,10 +381,10 @@ export default function ActivityPage() {
 
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
             <button 
-              onClick={() => navigate('/download')} 
+              onClick={() => navigate('/screenshot')} 
               className="px-4 py-3 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-medium transition-colors"
             >
-              ← Downloads
+              ← New Screenshot
             </button>
             <button 
               onClick={() => navigate('/dashboard')} 
@@ -436,17 +448,17 @@ export default function ActivityPage() {
             </div>
           ) : items.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="text-6xl mb-4">📋</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No recent activity</h3>
+              <div className="text-6xl mb-4">📸</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No recent screenshots</h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                Start downloading content to see your recent activity here. This page shows your most recent downloads and actions.
+                Start capturing screenshots to see your recent activity here. This page shows your most recent screenshot captures.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button 
-                  onClick={() => navigate('/download')} 
+                  onClick={() => navigate('/screenshot')} 
                   className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  Start Downloading
+                  Capture Screenshot
                 </button>
                 <button 
                   onClick={handleRetry} 
@@ -458,7 +470,7 @@ export default function ActivityPage() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {/* Enhanced Summary Stats */}
+              {/* Enhanced Summary Stats - CONVERTED for screenshots */}
               <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">📊 Recent Activity Summary</h3>
@@ -477,19 +489,19 @@ export default function ActivityPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{items.length}</div>
-                    <div className="text-sm text-gray-600">Recent Actions</div>
+                    <div className="text-sm text-gray-600">Recent Captures</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{groupedActivities.transcript.length}</div>
-                    <div className="text-sm text-gray-600">Transcripts</div>
+                    <div className="text-2xl font-bold text-green-600">{groupedActivities.png.length}</div>
+                    <div className="text-sm text-gray-600">PNG</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">{groupedActivities.audio.length}</div>
-                    <div className="text-sm text-gray-600">Audio Files</div>
+                    <div className="text-2xl font-bold text-purple-600">{groupedActivities.jpeg.length}</div>
+                    <div className="text-sm text-gray-600">JPEG</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">{groupedActivities.video.length}</div>
-                    <div className="text-sm text-gray-600">Video Files</div>
+                    <div className="text-2xl font-bold text-red-600">{groupedActivities.webp.length + groupedActivities.pdf.length}</div>
+                    <div className="text-sm text-gray-600">Other</div>
                   </div>
                 </div>
               </div>
@@ -527,29 +539,29 @@ export default function ActivityPage() {
                       </p>
                       
                       <div className="flex flex-wrap gap-2 text-xs">
-                        {activity.video_id && (
+                        {activity.url && (
                           <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                            🎬 Video: {activity.video_id}
+                            🌐 {new URL(activity.url).hostname}
                           </span>
                         )}
-                        {activity.file_format && (
+                        {activity.format && (
                           <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
-                            📄 {activity.file_format.toUpperCase()}
+                            📄 {activity.format.toUpperCase()}
                           </span>
                         )}
-                        {activity.quality && activity.quality !== 'default' && (
+                        {activity.width && activity.height && (
                           <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
-                            ⭐ {activity.quality}
+                            📐 {activity.width}x{activity.height}
                           </span>
                         )}
-                        {activity.file_size && (
+                        {(activity.file_size || activity.size_bytes) && (
                           <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                            📏 {formatFileSize(activity.file_size)}
+                            📏 {formatFileSize(activity.file_size || activity.size_bytes)}
                           </span>
                         )}
-                        {activity.processing_time && (
+                        {activity.full_page && (
                           <span className="inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full">
-                            ⏱️ {activity.processing_time.toFixed(2)}s
+                            📜 Full Page
                           </span>
                         )}
                       </div>
@@ -579,10 +591,10 @@ export default function ActivityPage() {
             📚 <span>View Complete History ({items.length}+ items)</span>
           </button>
           <button 
-            onClick={() => navigate('/download')} 
+            onClick={() => navigate('/screenshot')} 
             className="flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium"
           >
-            🚀 <span>Start New Download</span>
+            🚀 <span>Capture New Screenshot</span>
           </button>
         </div>
 
@@ -600,4 +612,3 @@ export default function ActivityPage() {
     </div>
   );
 }
-

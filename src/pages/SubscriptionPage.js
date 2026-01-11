@@ -1,3 +1,11 @@
+// ========================================
+// SUBSCRIPTION PAGE - PIXELPERFECT SCREENSHOT API
+// ========================================
+// File: frontend/src/pages/SubscriptionPage.js
+// Author: OneTechly
+// Purpose: Subscription management and billing
+// Updated: January 2026 - Converted from YCD to PixelPerfect
+
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -5,7 +13,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { getDisplayEmail } from '../utils/userDisplay';
 import AppBrand from '../components/AppBrand';
-import YcdLogo from '../components/YcdLogo';
 import ConfirmModal from '../components/ConfirmModal';
 
 const API_BASE_URL =
@@ -16,7 +23,7 @@ const API_BASE_URL =
 const defaultBilling = {
   mode: 'test',
   is_demo: false,
-  prices: { pro: null, premium: null },
+  prices: { pro: null, business: null, premium: null },
   source: {},
 };
 
@@ -28,7 +35,11 @@ async function fetchBillingConfig() {
     return {
       mode: json.mode || 'test',
       is_demo: !!json.is_demo,
-      prices: { pro: json.pro_price_id || null, premium: json.premium_price_id || null },
+      prices: { 
+        pro: json.pro_price_id || null, 
+        business: json.business_price_id || null,
+        premium: json.premium_price_id || null 
+      },
       source: json,
     };
   } catch {
@@ -66,7 +77,7 @@ export default function SubscriptionPage() {
   const planTier = (tier || 'free').toLowerCase();
   const isActive = planTier !== 'free';
 
-  // ✅ FIXED: Consistent clamping logic - matches Dashboard & Download pages
+  // ✅ CONVERTED: Single screenshot usage counter
   const clamp = (u, l) => (l === 'unlimited' || l === Infinity || l == null ? Number(u || 0) : Math.min(Number(u || 0), Number(l || 0)));
   
   const percent = (u, l) => {
@@ -86,12 +97,11 @@ export default function SubscriptionPage() {
     </div>
   );
 
-  // ✅ FIXED: Remove "(over by X)" display - clean UI like Dashboard
-  const fmtUsage = (key) => {
-    const u = subscriptionStatus?.usage?.[key] ?? 0;
-    const l = subscriptionStatus?.limits?.[key];
+  // ✅ CONVERTED: Single screenshot usage formatter
+  const fmtUsage = () => {
+    const u = subscriptionStatus?.usage?.screenshots ?? 0;
+    const l = subscriptionStatus?.limits?.screenshots;
     if (l === 'unlimited' || l === Infinity) return `${u} / ∞`;
-    // Clamp display to limit (no "over by" text)
     const clamped = clamp(u, l);
     return `${clamped} / ${l ?? 0}`;
   };
@@ -162,6 +172,7 @@ export default function SubscriptionPage() {
   }, [isAuthenticated, navigate, refreshSubscriptionStatus, checkPaymentSuccess, user?.username]);
 
   const canUpgradeToPro = planTier === 'free';
+  const canUpgradeToBusiness = planTier === 'free' || planTier === 'pro';
   const canUpgradeToPremium = planTier !== 'premium';
 
   const openBillingPortal = async () => {
@@ -259,29 +270,41 @@ export default function SubscriptionPage() {
   const getBillingButtonText = () =>
     (planTier === 'free' ? 'View Billing Options' : 'Manage Billing & Payments');
 
+  // CONVERTED: Screenshot-focused plan descriptions
   const plans = useMemo(
     () => [
       { id: 'free', name: 'Free', price: 0, popular: false, features: [
-        '5 clean transcript downloads',
-        '3 unclean transcript downloads',
-        '2 audio downloads • 1 video download',
-        'Basic formats (TXT, SRT, VTT)',
+        '100 screenshots per month',
+        'All formats (PNG, JPEG, WebP, PDF)',
+        'Standard viewport sizes',
+        'Basic screenshot options',
         'Community support',
       ]},
-      { id: 'pro', name: 'Pro', price: 9.99, popular: true, features: [
-        '100 clean transcript downloads',
-        '50 unclean • 50 audio • 20 video',
+      { id: 'pro', name: 'Pro', price: 49, popular: true, features: [
+        '5,000 screenshots per month',
         'All formats + faster processing',
+        'Custom viewport dimensions',
+        'Full-page screenshots',
         'Priority support (<4h weekdays)',
-        'Batch processing (CSV, TXT, TSV upload — up to 3 links per batch)',
+        'Batch processing (up to 50 URLs)',
       ]},
-      { id: 'premium', name: 'Premium', price: 19.99, popular: false, features: [
-        'Unlimited transcripts, audio & video',
-        'All formats + API access',
-        'Fastest processing',
+      { id: 'business', name: 'Business', price: 199, popular: false, features: [
+        '50,000 screenshots per month',
+        'All Pro features',
+        'Advanced screenshot options',
+        'Dark mode screenshots',
+        'Element removal (CSS selectors)',
         'Priority support (<2h weekdays)',
-        'Batch processing (CSV, TXT, TSV upload + bulk processing + higher caps)',
-        'Custom integrations (webhooks, S3, Slack, SSO)',
+        'Batch processing (up to 100 URLs)',
+      ]},
+      { id: 'premium', name: 'Premium', price: 499, popular: false, features: [
+        'Unlimited screenshots',
+        'All Business features',
+        'API access with webhooks',
+        'Custom integrations (S3, Slack, SSO)',
+        'Dedicated support (<1h 24/7)',
+        'Unlimited batch processing',
+        'White-label options',
       ]},
     ],
     []
@@ -289,30 +312,37 @@ export default function SubscriptionPage() {
 
   const canUpgrade = (plan) =>
     (plan.id === 'pro' && canUpgradeToPro) ||
+    (plan.id === 'business' && canUpgradeToBusiness) ||
     (plan.id === 'premium' && canUpgradeToPremium);
 
   const getPlanButton = (plan) => {
     const current = planTier;
     const isCurrent = current === plan.id;
     const isFreeCardDowngradeBlocked = plan.id === 'free' && current !== 'free';
-    const isProCardDowngradeBlocked = plan.id === 'pro' && current === 'premium';
+    const isProCardDowngradeBlocked = plan.id === 'pro' && (current === 'business' || current === 'premium');
+    const isBusinessCardDowngradeBlocked = plan.id === 'business' && current === 'premium';
     const base =
       'w-full py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed';
 
     if (isCurrent) {
       return <button disabled className={`${base} bg-green-100 text-green-800 border border-green-200`}>✓ Current Plan</button>;
     }
-    if (isFreeCardDowngradeBlocked || isProCardDowngradeBlocked) {
+    if (isFreeCardDowngradeBlocked || isProCardDowngradeBlocked || isBusinessCardDowngradeBlocked) {
       return <button disabled className={`${base} bg-gray-100 text-gray-500 border border-gray-200`}>No Downgrade Available</button>;
     }
 
     if (canUpgrade(plan)) {
       const isPro = plan.id === 'pro';
+      const isBusiness = plan.id === 'business';
       return (
         <button
           onClick={() => handleSmartUpgrade(plan.id)}
           disabled={loadingAction || isCheckingPayment}
-          className={`${base} ${isPro ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500'} text-white ${(loadingAction || isCheckingPayment) ? 'opacity-75 cursor-wait' : ''}`}
+          className={`${base} ${
+            isPro ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 
+            isBusiness ? 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500' :
+            'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'
+          } text-white ${(loadingAction || isCheckingPayment) ? 'opacity-75 cursor-wait' : ''}`}
         >
           {loadingAction ? 'Setting up...' : isCheckingPayment ? 'Processing...' : getSmartButtonText(plan.id)}
         </button>
@@ -330,16 +360,16 @@ export default function SubscriptionPage() {
           <AppBrand
             size={32}
             showText={true}
-            label="OneTechly — YCD"
-            logoSrc="/logo_onetechly.png"
-            to="/app/dashboard"
+            label="PixelPerfect API"
+            logoSrc="/logo_pixelperfect.png"
+            to="/dashboard"
           />
         </div>
 
-        {/* ============ Centered Page Header with Official YCD Logo ============ */}
+        {/* ============ Centered Page Header ============ */}
         <header className="mb-6 text-center">
           <div className="flex justify-center items-center mb-4">
-            <YcdLogo size={56} />
+            <div className="text-6xl">📸</div>
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-2">💳 Subscription</h1>
@@ -348,10 +378,10 @@ export default function SubscriptionPage() {
             (<span className="font-mono">{user?.email}</span>)
           </div>
 
-          {/* Navigation Actions - UPDATED: Back to Dashboard button now matches Download page */}
+          {/* Navigation Actions */}
           <div className="mt-4 flex gap-4 justify-center flex-wrap">
             <button
-              onClick={() => navigate('/app/dashboard')}
+              onClick={() => navigate('/dashboard')}
               className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             >
               ← Back to Dashboard
@@ -438,51 +468,15 @@ export default function SubscriptionPage() {
             <div className="space-y-3">
               <div className="text-sm text-gray-700">Usage This Month</div>
 
-              {/* Clean */}
+              {/* CONVERTED: Single screenshot usage counter */}
               <div>
                 <div className="flex items-center justify-between text-xs">
-                  <div>📄 Clean: {fmtUsage('clean_transcripts')}</div>
+                  <div>📸 Screenshots: {fmtUsage()}</div>
                 </div>
                 {bar(
-                  subscriptionStatus?.usage?.clean_transcripts ?? 0,
-                  subscriptionStatus?.limits?.clean_transcripts,
+                  subscriptionStatus?.usage?.screenshots ?? 0,
+                  subscriptionStatus?.limits?.screenshots,
                   'bg-blue-500'
-                )}
-              </div>
-
-              {/* Unclean */}
-              <div>
-                <div className="flex items-center justify-between text-xs">
-                  <div>🕒 Unclean: {fmtUsage('unclean_transcripts')}</div>
-                </div>
-                {bar(
-                  subscriptionStatus?.usage?.unclean_transcripts ?? 0,
-                  subscriptionStatus?.limits?.unclean_transcripts,
-                  'bg-indigo-500'
-                )}
-              </div>
-
-              {/* Audio */}
-              <div>
-                <div className="flex items-center justify-between text-xs">
-                  <div>🎵 Audio: {fmtUsage('audio_downloads')}</div>
-                </div>
-                {bar(
-                  subscriptionStatus?.usage?.audio_downloads ?? 0,
-                  subscriptionStatus?.limits?.audio_downloads,
-                  'bg-purple-500'
-                )}
-              </div>
-
-              {/* Video */}
-              <div>
-                <div className="flex items-center justify-between text-xs">
-                  <div>🎬 Video: {fmtUsage('video_downloads')}</div>
-                </div>
-                {bar(
-                  subscriptionStatus?.usage?.video_downloads ?? 0,
-                  subscriptionStatus?.limits?.video_downloads,
-                  'bg-pink-500'
                 )}
               </div>
             </div>
@@ -507,7 +501,7 @@ export default function SubscriptionPage() {
                 {loadingAction ? 'Setting up...' : isCheckingPayment ? 'Processing...' : 'Upgrade to Pro'}
               </button>
               <button
-                onClick={() => handleSmartUpgrade('premium')}
+                onClick={() => handleSmartUpgrade('business')}
                 disabled={loadingAction || isCheckingPayment}
                 className={`w-full py-3 rounded-lg font-medium transition-all ${
                   !loadingAction && !isCheckingPayment
@@ -515,7 +509,7 @@ export default function SubscriptionPage() {
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {loadingAction ? 'Setting up...' : isCheckingPayment ? 'Processing...' : 'Upgrade to Premium'}
+                {loadingAction ? 'Setting up...' : isCheckingPayment ? 'Processing...' : 'Upgrade to Business'}
               </button>
             </div>
           )}
@@ -554,21 +548,21 @@ export default function SubscriptionPage() {
 
             <button
               onClick={() =>
-                (planTier === 'pro' || planTier === 'premium')
+                (planTier === 'pro' || planTier === 'business' || planTier === 'premium')
                   ? navigate('/batch')
-                  : toast('Upgrade to Pro to use Batch Jobs.')
+                  : toast('Upgrade to Pro to use Batch Screenshots.')
               }
-              disabled={!(planTier === 'pro' || planTier === 'premium')}
+              disabled={!(planTier === 'pro' || planTier === 'business' || planTier === 'premium')}
               className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                (planTier === 'pro' || planTier === 'premium')
+                (planTier === 'pro' || planTier === 'business' || planTier === 'premium')
                   ? 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
                   : 'bg-gray-200 text-gray-500 cursor-not-allowed'
               }`}
-              title={(planTier === 'pro' || planTier === 'premium')
-                ? 'Open Batch Jobs (Beta)'
-                : 'Batch Jobs available on Pro and Premium'}
+              title={(planTier === 'pro' || planTier === 'business' || planTier === 'premium')
+                ? 'Open Batch Screenshots'
+                : 'Batch Screenshots available on Pro and above'}
             >
-              Batch Jobs (Beta)
+              Batch Screenshots
             </button>
           </div>
         </div>
@@ -576,7 +570,7 @@ export default function SubscriptionPage() {
         {/* Plans */}
         <section className="mb-10 mt-8">
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">Available Plans</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {plans.map((p) => (
               <div
                 key={p.id}
